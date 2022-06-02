@@ -7,7 +7,17 @@ package ai.metaheuristic.rrdp;
  */
 public class RrdpEnums {
 
+    // Blake3-256
     public enum ChecksumAlgo { SHA1, MD5 }
 
-    public enum Produce {SNAPHOST, DELTA}
+    public enum ProduceType {SNAPHOST, DELTA}
+
+    public enum EntryState { PUBLISHED(true), UPDATED(false), WITHDRAWAL(true);
+
+        public final boolean rfc8182;
+
+        EntryState(boolean rfc8182) {
+            this.rfc8182 = rfc8182;
+        }
+    }
 }

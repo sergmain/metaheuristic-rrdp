@@ -1,0 +1,3 @@
+https://datatracker.ietf.org/doc/html/rfc8182
+https://github.com/NLnetLabs/krill-sync
+https://github.com/NLnetLabs/rrdpit
