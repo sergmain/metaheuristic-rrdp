@@ -28,6 +28,8 @@ public class RrdpTest {
         RrdpEntry en1 = publishEntry("entry #1", "http://uri1");
         RrdpEntry en2 = publishEntry("entry #2", "http://uri2");
         RrdpEntry en3 = publishEntry("entry #3", "http://uri3");
+        RrdpEntry en4 = publishEntry("entry #4", "http://uri4");
+
 
         RrdpConfig cfg = new RrdpConfig()
                 .withRfc8182(false)
@@ -39,7 +41,8 @@ public class RrdpTest {
                 .withPersistSnapshot(snapshot::write)
                 .withPersistDelta(delta::write)
                 .withPersistNotification(notification::write)
-                .withProduceType(()-> RrdpEnums.ProduceType.SNAPHOST);
+                .withProduceType(()-> RrdpEnums.ProduceType.SNAPSHOT)
+                .withEntryForSerial((s, i)->en4);
 
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();
@@ -49,9 +52,11 @@ public class RrdpTest {
         String notificationXml = notification.toString();
 
         System.out.println(snapshotXml);
+        System.out.println(notificationXml);
 
         assertNotEquals(0, snapshotXml.length());
         assertEquals(0, deltaXml.length());
+        assertNotEquals(0, notificationXml.length());
     }
 
     @Test
@@ -87,10 +92,12 @@ public class RrdpTest {
         String deltaXml = delta.toString();
         String notificationXml = notification.toString();
 
-        System.out.println(snapshotXml);
+        System.out.println(deltaXml);
+        System.out.println(notificationXml);
 
         assertEquals(0, snapshotXml.length());
         assertNotEquals(0, deltaXml.length());
+        assertNotEquals(0, notificationXml.length());
     }
 
     private static RrdpEntry publishEntry(String content, String uri) {

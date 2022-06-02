@@ -10,7 +10,7 @@ public class RrdpEnums {
     // Blake3-256
     public enum ChecksumAlgo { SHA1, MD5 }
 
-    public enum ProduceType {SNAPHOST, DELTA}
+    public enum ProduceType {SNAPSHOT, DELTA}
 
     public enum EntryState { PUBLISHED(true), UPDATED(false), WITHDRAWAL(true);
 

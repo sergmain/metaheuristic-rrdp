@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 import static ai.metaheuristic.rrdp.RrdpEnums.*;
@@ -11,7 +12,7 @@ import static ai.metaheuristic.rrdp.RrdpEnums.*;
  */
 public class Rrdp {
 
-    public final RrdpConfig cfg;
+    private final RrdpConfig cfg;
 
     public Rrdp(RrdpConfig cfg) {
         this.cfg = cfg;
@@ -25,14 +26,14 @@ public class Rrdp {
     public void produce() {
         String session = cfg.getSession.get();
         int serial = cfg.currSerial.apply(session);
-        final ProduceType produce = serial == 0 ? ProduceType.SNAPHOST : cfg.produceType.get();
+        final ProduceType produce = serial == 0 ? ProduceType.SNAPSHOT : cfg.produceType.get();
         serial = cfg.nextSerial.apply(session);
-        if (produce== ProduceType.SNAPHOST && serial!=1) {
+        if (produce== ProduceType.SNAPSHOT && serial!=1) {
             throw new IllegalStateException("(produce== RrdpEnums.ProduceType.SNAPHOST && serial!=1)");
         }
 
         switch(produce) {
-            case SNAPHOST:
+            case SNAPSHOT:
                 produceSnapshot(session);
                 break;
             case DELTA:
@@ -92,14 +93,47 @@ public class Rrdp {
             }
             else {
                 cfg.persistDelta.accept(
-                        " <withdraw uri=\""+entry.uri.get()+"\" hash=\""+entry.hash.get()+"\"/>");
+                        " <withdraw uri=\""+entry.uri.get()+"\" hash=\""+entry.hash.get()+"\"/>\n");
             }
         }
         cfg.persistDelta.accept("</delta>\n");
     }
 
     private void produceNotification(String session, int serial) {
+        Notification n;
+        RrdpEntry newEntry = cfg.entryForSerial.apply(session, serial);
+        if (serial>1) {
+            String xml = cfg.currentNotification.get();
+            n = RrdpUtils.parseNotificationXml(xml);
+            if (!n.sessionId.equals(session)) {
+                throw new IllegalStateException("(!n.sessionId.equals(session))");
+            }
+            if (n.serial+1!=serial) {
+                throw new IllegalStateException("(n.serial+1!=serial)");
+            }
+            n.entries.add(new Notification.Entry(ProduceType.DELTA, newEntry.uri.get(), newEntry.hash.get(), serial));
+        }
+        else {
+            n = new Notification(session, serial);
+            n.entries.add(new Notification.Entry(ProduceType.SNAPSHOT, newEntry.uri.get(), newEntry.hash.get(), 1));
+        }
 
+        cfg.persistNotification.accept(
+                "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\""+serial+"\" session_id=\""+session+"\">\n");
+        for (Notification.Entry entry : n.entries) {
+            if (entry.type==ProduceType.SNAPSHOT) {
+                cfg.persistNotification.accept(
+                        " <snapshot uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"/>\n");
+            }
+            else if (entry.type==ProduceType.DELTA) {
+                cfg.persistNotification.accept(
+                        " <delta serial=\""+entry.serial+"\" uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"/>\n");
+            }
+            else {
+                throw new IllegalStateException("unknown type: " + entry.type);
+            }
+        }
+        cfg.persistNotification.accept("</notification>\n");
     }
 
 }

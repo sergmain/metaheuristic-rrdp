@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.With;
 
 import java.util.Iterator;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -29,6 +30,7 @@ public class RrdpConfig {
     public Supplier<Iterator<RrdpEntry>> rrdpEntryIteator;
     public Function<String, Integer> nextSerial;
     public Function<String, Integer> currSerial;
+    public BiFunction<String, Integer, RrdpEntry> entryForSerial;
     public Consumer<String> persistSnapshot;
     public Consumer<String> persistDelta;
     public Consumer<String> persistNotification;
