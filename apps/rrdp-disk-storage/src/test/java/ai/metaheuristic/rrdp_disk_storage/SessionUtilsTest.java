@@ -21,14 +21,11 @@ public class SessionUtilsTest {
 
         assertNull(SessionUtils.getSessionFile(tempPath));
         String session = SessionUtils.getSession(tempPath);
-        assertNotNull(session);
-        assertDoesNotThrow(()-> UUID.fromString(session));
+        assertNull(session);
 
-        String session1 = SessionUtils.getSession(tempPath);
+        String session1 = SessionUtils.persistSession(tempPath, UUID.randomUUID().toString(), LocalDate::now);
         assertNotNull(session1);
         assertDoesNotThrow(()-> UUID.fromString(session1));
-
-        assertEquals(session, session1);
 
         Path sessionPath1 = SessionUtils.getSessionFile(tempPath);
         assertNotNull(sessionPath1);
@@ -50,19 +47,15 @@ public class SessionUtilsTest {
     @Test
     public void testWithDates(@TempDir Path tempPath) {
 
-        String session = SessionUtils.getSession(tempPath, ()->LocalDate.now().minusDays(6));
-        assertNotNull(session);
-        assertDoesNotThrow(()-> UUID.fromString(session));
+        String session = SessionUtils.getSession(tempPath);
+        assertNull(session);
 
-        String session1 = SessionUtils.getSession(tempPath);
+        String session1 = SessionUtils.persistSession(tempPath, UUID.randomUUID().toString(), ()->LocalDate.now().minusDays(6));
         assertNotNull(session1);
         assertDoesNotThrow(()-> UUID.fromString(session1));
 
-        assertEquals(session, session1);
-
         Path sessionPath1 = SessionUtils.getSessionFile(tempPath);
         assertNotNull(sessionPath1);
-
 
         String session2 = SessionUtils.getSession(tempPath);
         assertNotNull(session2);
