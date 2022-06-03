@@ -14,7 +14,6 @@ import static ai.metaheuristic.rrdp_disk_storage.SessionUtils.getSession;
 
 public class RrdpDiskStorage {
 
-
     public final RrdpEnums.ChecksumAlgo checksumAlgo;
     public final Path data;
     public final Path metadata;

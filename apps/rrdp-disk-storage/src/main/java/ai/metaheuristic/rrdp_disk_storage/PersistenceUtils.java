@@ -32,8 +32,7 @@ public class PersistenceUtils {
     @Nullable
     @SneakyThrows
     public static String getLatestContent(
-            Path specificMetadataPath,
-            Function<String, Boolean> vefiryContentFunc) {
+            Path specificMetadataPath, Function<String, Boolean> vefiryContentFunc) {
 
         Path latestContentFile = getLatestContentFile(specificMetadataPath, null);
         String content = null;
@@ -52,7 +51,7 @@ public class PersistenceUtils {
             Function<String, Boolean> vefiryContentFunc, Supplier<LocalDate> localDateFunc ) {
 
         Path latestContentFile = getLatestContentFile(specificMetadataPath, localDateFunc);
-        String content = null;
+        String content;
         if (latestContentFile!=null) {
             content = Files.readString(latestContentFile);
             if (!vefiryContentFunc.apply(content)) {
@@ -103,11 +102,6 @@ public class PersistenceUtils {
             Files.createDirectory(datePath);
         }
         return datePath;
-    }
-
-    @SneakyThrows
-    public static Path getLatestContentFile(Path specificMetadataPath) {
-        return getLatestContentFile(specificMetadataPath, LocalDate::now);
     }
 
     @SneakyThrows

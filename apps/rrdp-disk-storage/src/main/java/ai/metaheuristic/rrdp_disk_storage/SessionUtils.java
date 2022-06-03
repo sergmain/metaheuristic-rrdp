@@ -19,10 +19,10 @@ public class SessionUtils {
     @SneakyThrows
     public static String getSession(Path metadataPath) {
         Path sessionPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SESSION_METADATA_PATH);
-        return PersistenceUtils.getLatestContent(sessionPath, SessionUtils::verifyUUID);
+        return PersistenceUtils.getLatestContent(sessionPath, SessionUtils::verifyAsUUID);
     }
 
-    private static boolean verifyUUID(String s) {
+    private static boolean verifyAsUUID(String s) {
         try {
             //noinspection unused
             UUID sessionUUD = UUID.fromString(s);
@@ -38,10 +38,9 @@ public class SessionUtils {
     public static String persistSession(Path metadataPath, String session, Supplier<LocalDate> localDateFunc ) {
         Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SESSION_METADATA_PATH);
         return PersistenceUtils.persistContent(
-                serialPath, ()->session, SessionUtils::verifyUUID, localDateFunc);
+                serialPath, ()->session, SessionUtils::verifyAsUUID, localDateFunc);
     }
 
-    @SuppressWarnings("WeakerAccess")
     @SneakyThrows
     public static Path getSessionFile(Path metadataPath) {
         Path sessionPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SESSION_METADATA_PATH);

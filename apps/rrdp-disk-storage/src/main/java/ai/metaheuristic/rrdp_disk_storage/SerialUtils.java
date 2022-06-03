@@ -20,10 +20,10 @@ public class SerialUtils {
     @SneakyThrows
     public static String getSerial(Path metadataPath) {
         Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SERIAL_METADATA_PATH);
-        return PersistenceUtils.getLatestContent(serialPath, SerialUtils::verifyInteger);
+        return PersistenceUtils.getLatestContent(serialPath, SerialUtils::verifyAsInteger);
     }
 
-    private static Boolean verifyInteger(@Nullable String s) {
+    private static Boolean verifyAsInteger(@Nullable String s) {
         if (s ==null) {
             return false;
         }
@@ -42,18 +42,12 @@ public class SerialUtils {
     public static String persistSerial(Path metadataPath, int serial, Supplier<LocalDate> localDateFunc ) {
         Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SERIAL_METADATA_PATH);
         return PersistenceUtils.persistContent(
-                serialPath, ()->Integer.toString(serial), SerialUtils::verifyInteger, localDateFunc);
+                serialPath, ()->Integer.toString(serial), SerialUtils::verifyAsInteger, localDateFunc);
     }
 
     @SneakyThrows
     public static Path getSerialFile(Path metadataPath) {
-        return getSerialFile(metadataPath, LocalDate::now);
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    @SneakyThrows
-    public static Path getSerialFile(Path metadataPath, Supplier<LocalDate> localDateFunc) {
         Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SERIAL_METADATA_PATH);
-        return PersistenceUtils.getLatestContentFile(serialPath, localDateFunc);
+        return PersistenceUtils.getLatestContentFile(serialPath, null);
     }
 }
