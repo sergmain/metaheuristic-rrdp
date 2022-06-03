@@ -22,8 +22,6 @@ public class RrdpConfig {
 
     public boolean rfc8182 = true;
     public boolean isFileContent = true;
-    public boolean isErrorOnFileChange = true;
-    public RrdpEnums.ChecksumAlgo checksumAlgo = RrdpEnums.ChecksumAlgo.SHA1;
 
     public Supplier<String> getSession;
     public Supplier<String> currentNotification;

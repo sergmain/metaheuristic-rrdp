@@ -1,9 +1,9 @@
 package ai.metaheuristic.rrdp;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
-import static ai.metaheuristic.rrdp.RrdpEnums.*;
+import static ai.metaheuristic.rrdp.RrdpEnums.EntryState;
+import static ai.metaheuristic.rrdp.RrdpEnums.ProduceType;
 
 /**
  * @author Serge

@@ -5,7 +5,6 @@ import lombok.SneakyThrows;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
@@ -19,25 +18,19 @@ import java.util.function.Consumer;
  * Date: 6/1/2022
  * Time: 4:45 AM
  */
+@SuppressWarnings("WeakerAccess")
 public class RrdpUtils {
 
     private final static XMLInputFactory XML_FACTORY = XMLInputFactory.newInstance();
-
-    private static XMLEventReader createXmlEventReader(Reader reader) {
-        try {
-            return XML_FACTORY.createXMLEventReader(reader);
-        } catch (XMLStreamException e) {
-            throw new IllegalStateException("201.160 "+e.getMessage());
-        }
-    }
 
     public static Notification parseNotificationXml(String xml) {
         StringReader reader = new StringReader(xml);
         return parseNotificationXml(reader);
     }
 
+    @SneakyThrows
     public static Notification parseNotificationXml(Reader reader) {
-        XMLEventReader eventReader = createXmlEventReader(reader);
+        XMLEventReader eventReader = XML_FACTORY.createXMLEventReader(reader);
         Notification notification = parse(eventReader);
         return notification;
 

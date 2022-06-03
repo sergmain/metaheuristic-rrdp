@@ -57,6 +57,23 @@ public class RrdpTest {
         assertNotEquals(0, snapshotXml.length());
         assertEquals(0, deltaXml.length());
         assertNotEquals(0, notificationXml.length());
+
+        verifyNotification(notificationXml, session, en4);
+    }
+
+    private static void verifyNotification(String notificationXml, String session, RrdpEntry en4) {
+        Notification n = RrdpUtils.parseNotificationXml(notificationXml);
+
+        assertEquals(session, n.sessionId);
+        assertEquals(1, n.serial);
+        assertEquals(1, n.entries.size());
+
+        Notification.Entry e1 = n.entries.stream().filter(o->o.serial==null).findFirst().orElseThrow();
+
+        assertNull(e1.serial);
+        assertEquals(RrdpEnums.ProduceType.SNAPSHOT, e1.type);
+        assertEquals(en4.hash.get(), e1.hash);
+        assertEquals(en4.uri.get(), e1.uri);
     }
 
     @Test
@@ -72,6 +89,7 @@ public class RrdpTest {
         RrdpEntry en2 = publishEntry("entry #2", "http://uri2");
         RrdpEntry en3 = publishEntry("entry #3", "http://uri3");
         RrdpEntry en4 = withdrawEntry("entry #4", "http://uri4");
+        RrdpEntry en5 = withdrawEntry("entry #5", "http://uri5");
 
         RrdpConfig cfg = new RrdpConfig()
                 .withRfc8182(false)
@@ -83,7 +101,8 @@ public class RrdpTest {
                 .withPersistSnapshot(snapshot::write)
                 .withPersistDelta(delta::write)
                 .withPersistNotification(notification::write)
-                .withProduceType(()-> RrdpEnums.ProduceType.DELTA);
+                .withProduceType(()-> RrdpEnums.ProduceType.DELTA)
+                .withEntryForSerial((s, i)->en5);
 
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();
