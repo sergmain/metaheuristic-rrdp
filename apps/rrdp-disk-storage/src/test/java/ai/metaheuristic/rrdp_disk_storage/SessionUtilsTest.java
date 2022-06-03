@@ -50,8 +50,6 @@ public class SessionUtilsTest {
     @Test
     public void testWithDates(@TempDir Path tempPath) {
 
-        assertNull(SessionUtils.getSessionFile(tempPath));
-
         String session = SessionUtils.getSession(tempPath, ()->LocalDate.now().minusDays(6));
         assertNotNull(session);
         assertDoesNotThrow(()-> UUID.fromString(session));
