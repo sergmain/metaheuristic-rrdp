@@ -21,12 +21,12 @@ public class PersistenceUtils {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    public static Path getSpecificMetadataPath(Path metadataPath, String specificMetadataName) throws IOException {
-        Path sessionPath = metadataPath.resolve(specificMetadataName);
-        if (!Files.exists(sessionPath)) {
-            Files.createDirectory(sessionPath);
+    public static Path resolveSubPath(Path path, String subPathName) throws IOException {
+        Path subPath = path.resolve(subPathName);
+        if (Files.notExists(subPath)) {
+            Files.createDirectory(subPath);
         }
-        return sessionPath;
+        return subPath;
     }
 
     @Nullable
@@ -98,7 +98,7 @@ public class PersistenceUtils {
     private static Path getDatePath(Path specificMetadataPath, Supplier<LocalDate> localDateFunc) throws IOException {
         final String currDate = DATE_FORMATTER.format(localDateFunc.get());
         Path datePath = specificMetadataPath.resolve(currDate);
-        if (!Files.exists(datePath)) {
+        if (Files.notExists(datePath)) {
             Files.createDirectory(datePath);
         }
         return datePath;
@@ -131,7 +131,7 @@ public class PersistenceUtils {
             return null;
         }
         Path actualLatestContentFile = getActualLatestContentFile(datePath, maxFileNumber);
-        if (!Files.exists(actualLatestContentFile)) {
+        if (Files.notExists(actualLatestContentFile)) {
             throw new IllegalStateException("File " + actualLatestContentFile + " doesn't exist");
         }
         return actualLatestContentFile;

@@ -14,11 +14,9 @@ import java.util.function.Supplier;
  */
 public class SessionUtils {
 
-    private static final String SESSION_METADATA_PATH = "session";
-
     @SneakyThrows
     public static String getSession(Path metadataPath) {
-        Path sessionPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SESSION_METADATA_PATH);
+        Path sessionPath = MetadataUtils.getSessionPath(metadataPath);
         return PersistenceUtils.getLatestContent(sessionPath, SessionUtils::verifyAsUUID);
     }
 
@@ -36,14 +34,14 @@ public class SessionUtils {
 
     @SneakyThrows
     public static String persistSession(Path metadataPath, String session, Supplier<LocalDate> localDateFunc ) {
-        Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SESSION_METADATA_PATH);
+        Path serialPath = MetadataUtils.getSessionPath(metadataPath);
         return PersistenceUtils.persistContent(
                 serialPath, ()->session, SessionUtils::verifyAsUUID, localDateFunc);
     }
 
     @SneakyThrows
     public static Path getSessionFile(Path metadataPath) {
-        Path sessionPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SESSION_METADATA_PATH);
+        Path sessionPath = MetadataUtils.getSessionPath(metadataPath);
         return PersistenceUtils.getLatestContentFile(sessionPath, null);
     }
 }

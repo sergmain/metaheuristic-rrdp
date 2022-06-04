@@ -14,12 +14,10 @@ import java.util.function.Supplier;
  */
 public class SerialUtils {
 
-    private static final String SERIAL_METADATA_PATH = "serial";
-
     @Nullable
     @SneakyThrows
     public static String getSerial(Path metadataPath) {
-        Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SERIAL_METADATA_PATH);
+        Path serialPath = MetadataUtils.getSerialPath(metadataPath);
         return PersistenceUtils.getLatestContent(serialPath, SerialUtils::verifyAsInteger);
     }
 
@@ -40,14 +38,14 @@ public class SerialUtils {
 
     @SneakyThrows
     public static String persistSerial(Path metadataPath, int serial, Supplier<LocalDate> localDateFunc ) {
-        Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SERIAL_METADATA_PATH);
+        Path serialPath = MetadataUtils.getSerialPath(metadataPath);
         return PersistenceUtils.persistContent(
                 serialPath, ()->Integer.toString(serial), SerialUtils::verifyAsInteger, localDateFunc);
     }
 
     @SneakyThrows
     public static Path getSerialFile(Path metadataPath) {
-        Path serialPath = PersistenceUtils.getSpecificMetadataPath(metadataPath, SERIAL_METADATA_PATH);
+        Path serialPath = MetadataUtils.getSerialPath(metadataPath);
         return PersistenceUtils.getLatestContentFile(serialPath, null);
     }
 }
