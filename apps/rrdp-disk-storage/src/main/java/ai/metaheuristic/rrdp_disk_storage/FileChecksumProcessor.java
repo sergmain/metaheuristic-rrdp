@@ -15,10 +15,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static java.nio.file.StandardOpenOption.*;
+import static java.nio.file.StandardOpenOption.READ;
 
 /**
  * @author Sergio Lissner
@@ -28,19 +28,22 @@ import static java.nio.file.StandardOpenOption.*;
 public class FileChecksumProcessor {
 
     @SneakyThrows
-    public static void process(Path metadataPath, Path dataPath) {
+    public static void process(Path metadataPath, Path dataPath, Consumer<Map<String, ChecksumPath>> consumeFunc) {
         if (Files.notExists(dataPath)) {
             return;
         }
 
         Path actualMetadataDataPath = MetadataUtils.getDataPath(metadataPath);
         try (final Stream<Path> list = Files.list(dataPath) ) {
-            list.forEach(p-> processDiff(actualMetadataDataPath, p));
+            list.forEach(p-> {
+                Map<String, ChecksumPath> diff = processDiff(actualMetadataDataPath, p);
+                consumeFunc.accept(diff);
+            });
         }
     }
 
     @SneakyThrows
-    private static void processDiff(Path actualMetadataDataPath, Path subDataPath) {
+    private static Map<String, ChecksumPath> processDiff(Path actualMetadataDataPath, Path subDataPath) {
         String entryPointName = subDataPath.getFileName().toString();
         final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(actualMetadataDataPath, entryPointName);
 
@@ -48,9 +51,10 @@ public class FileChecksumProcessor {
 
         int i=0;
         //                Files.writeString(checkSumPath, ""+relativeName+"\n", CREATE, APPEND, WRITE);
-
+        return newMap;
     }
 
+    // calc checksums for data source
     public static Map<String, ChecksumPath> loadChecksumPath(Path actualMetadataDataPath, Path subDataPath, Map<String, ChecksumPath> calculatedMap) throws IOException {
         Path specificDataPath = actualMetadataDataPath.resolve(subDataPath.getFileName().toString());
         if (Files.notExists(specificDataPath)) {
@@ -69,7 +73,6 @@ public class FileChecksumProcessor {
                 cs.size = Files.size(p);
                 String nameMd5 = DigestUtils.md5Hex(relativeName);
                 cs.md5First2Chars = nameMd5.substring(0, 2);
-                cs.md5ShortData = calcMd5For256Bytes(p);
                 cs.sha1 = calcSha1(p);
 
                 if (isDifferent(calculatedMap, cs)) {
@@ -92,7 +95,7 @@ public class FileChecksumProcessor {
         if (check.size!=cs.size) {
             return true;
         }
-        if (!check.md5ShortData.equals(check.md5ShortData)) {
+        if (!check.sha1.equals(cs.sha1)) {
             return true;
         }
         return false;

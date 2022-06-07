@@ -25,6 +25,7 @@ public class ChecksumManager {
         Path metadataDataPath;
     }
 
+    // Load the current checksums
     @SneakyThrows
     public static Map<String, ChecksumPath> load(Path metadataDataPath, String subPathName) {
         Path specificDataPath = metadataDataPath.resolve(subPathName);
@@ -40,7 +41,7 @@ public class ChecksumManager {
                 if (!Files.isDirectory(md5Path)) {
                     throw new IllegalStateException("(!Files.isDirectory(subDataPath)), " + md5Path);
                 }
-                System.out.println("\t" + md5Path);
+//                System.out.println("\t" + md5Path);
                 loadSubPath(md5Path, map);
             }
         }

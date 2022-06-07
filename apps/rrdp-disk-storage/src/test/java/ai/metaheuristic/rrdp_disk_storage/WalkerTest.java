@@ -17,6 +17,9 @@ public class WalkerTest {
         final String startPoint = "D:\\test-files-edition";
         final Path metadataPath = PersistenceUtils.resolveSubPath(Path.of("result"), "metadata");
 
-        FileChecksumProcessor.process(metadataPath, Path.of(startPoint));
+        FileChecksumProcessor.process(metadataPath, Path.of(startPoint), (x) -> {
+
+            x.values().forEach(System.out::println);
+        });
     }
 }
