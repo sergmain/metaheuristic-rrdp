@@ -2,6 +2,7 @@ package ai.metaheuristic.rrdp_disk_storage;
 
 import lombok.SneakyThrows;
 
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import java.util.function.Supplier;
 public class SessionUtils {
 
     @SneakyThrows
+    @Nullable
     public static String getSession(Path metadataPath) {
         Path sessionPath = MetadataUtils.getSessionPath(metadataPath);
         return PersistenceUtils.getLatestContent(sessionPath, SessionUtils::verifyAsUUID);

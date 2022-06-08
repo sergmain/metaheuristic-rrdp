@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,9 +16,9 @@ public class ChecksumManagerTest {
     @Test
     public void test() throws IOException {
         final Path metadataPath = PersistenceUtils.resolveSubPath(Path.of("result"), "metadata");
-        final Path metadataDataPath = MetadataUtils.getDataPath(metadataPath);
+        final Path editionPath = PersistenceUtils.resolveSubPath(metadataPath, "edition");
 
-        Map<String, ChecksumPath> map = ChecksumManager.load(metadataDataPath, "edition");
+        Map<String, ChecksumPath> map = ChecksumManager.load(editionPath);
 
     }
 }

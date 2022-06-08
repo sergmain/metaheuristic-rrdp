@@ -23,7 +23,6 @@ public class RrdpTest {
 
         StringWriter snapshot = new StringWriter();
         StringWriter delta = new StringWriter();
-        StringWriter notification = new StringWriter();
 
         RrdpEntry en1 = publishEntry("entry #1", "http://uri1");
         RrdpEntry en2 = publishEntry("entry #2", "http://uri2");
@@ -31,21 +30,23 @@ public class RrdpTest {
         RrdpEntry en4 = publishEntry("entry #4", "http://uri4");
 
 
+        //noinspection ReturnOfNull
         RrdpConfig cfg = new RrdpConfig()
                 .withRfc8182(false)
                 .withGetSession(()->session)
                 .withCurrentNotification(()->null)
-                .withRrdpEntryIteator(()-> List.of(en1, en2, en3).iterator())
+                .withRrdpEntryIterator(()-> List.of(en1, en2, en3).iterator())
                 .withNextSerial((s)->serial+1)
                 .withCurrSerial((s)->serial)
                 .withPersistSnapshot(snapshot::write)
                 .withPersistDelta(delta::write)
-                .withPersistNotification(notification::write)
-                .withProduceType(()-> RrdpEnums.ProduceType.SNAPSHOT)
-                .withEntryForSerial((s, i)->en4);
+                .withProduceType(()-> RrdpEnums.ProduceType.SNAPSHOT);
 
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();
+
+        StringWriter notification = new StringWriter();
+        rrdp.produceNotification(new UriAndHash("http://notification-snapshot", DigestUtils.sha256Hex(snapshot.toString())), notification::write);
 
         String snapshotXml = snapshot.toString();
         String deltaXml = delta.toString();
@@ -91,18 +92,17 @@ public class RrdpTest {
         RrdpEntry en4 = withdrawEntry("entry #4", "http://uri4");
         RrdpEntry en5 = withdrawEntry("entry #5", "http://uri5");
 
+        //noinspection ReturnOfNull
         RrdpConfig cfg = new RrdpConfig()
                 .withRfc8182(false)
                 .withGetSession(()->session)
                 .withCurrentNotification(()->null)
-                .withRrdpEntryIteator(()-> List.of(en1, en2, en3, en4).iterator())
+                .withRrdpEntryIterator(()-> List.of(en1, en2, en3, en4).iterator())
                 .withNextSerial((s)->serial+1)
                 .withCurrSerial((s)->serial)
                 .withPersistSnapshot(snapshot::write)
                 .withPersistDelta(delta::write)
-                .withPersistNotification(notification::write)
-                .withProduceType(()-> RrdpEnums.ProduceType.DELTA)
-                .withEntryForSerial((s, i)->en5);
+                .withProduceType(()-> RrdpEnums.ProduceType.DELTA);
 
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();

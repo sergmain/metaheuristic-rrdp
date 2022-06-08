@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -28,26 +29,20 @@ import static java.nio.file.StandardOpenOption.READ;
 public class FileChecksumProcessor {
 
     @SneakyThrows
-    public static void process(Path metadataPath, Path dataPath, Consumer<Map<String, ChecksumPath>> consumeFunc) {
+    public static void process(Path specificMetadataPath, Path dataPath, Consumer<Map<String, ChecksumPath>> consumeFunc) {
         if (Files.notExists(dataPath)) {
             return;
         }
 
-        Path actualMetadataDataPath = MetadataUtils.getDataPath(metadataPath);
-        try (final Stream<Path> list = Files.list(dataPath) ) {
-            list.forEach(p-> {
-                Map<String, ChecksumPath> diff = processDiff(actualMetadataDataPath, p);
-                consumeFunc.accept(diff);
-            });
-        }
+        Path checksumPath = MetadataUtils.getChecksumPath(specificMetadataPath);
+        Map<String, ChecksumPath> diff = processDiff(checksumPath, dataPath);
+        consumeFunc.accept(diff);
     }
 
     @SneakyThrows
-    private static Map<String, ChecksumPath> processDiff(Path actualMetadataDataPath, Path subDataPath) {
-        String entryPointName = subDataPath.getFileName().toString();
-        final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(actualMetadataDataPath, entryPointName);
-
-        final Map<String, ChecksumPath> newMap = loadChecksumPath(actualMetadataDataPath, subDataPath, calculatedMap);
+    private static Map<String, ChecksumPath> processDiff(Path checksumPath, Path dataPath) {
+        final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(checksumPath);
+        final Map<String, ChecksumPath> newMap = loadChecksumPath(dataPath, calculatedMap);
 
         int i=0;
         //                Files.writeString(checkSumPath, ""+relativeName+"\n", CREATE, APPEND, WRITE);
@@ -55,18 +50,14 @@ public class FileChecksumProcessor {
     }
 
     // calc checksums for data source
-    public static Map<String, ChecksumPath> loadChecksumPath(Path actualMetadataDataPath, Path subDataPath, Map<String, ChecksumPath> calculatedMap) throws IOException {
-        Path specificDataPath = actualMetadataDataPath.resolve(subDataPath.getFileName().toString());
-        if (Files.notExists(specificDataPath)) {
-            Files.createDirectory(specificDataPath);
-        }
+    public static Map<String, ChecksumPath> loadChecksumPath(Path dataPath, Map<String, ChecksumPath> calculatedMap) throws IOException {
         final AtomicInteger count = new AtomicInteger();
         final Map<String, ChecksumPath> map = new HashMap<>(10000);
-        Files.walkFileTree(subDataPath, new SimpleFileVisitor<>() {
+        Files.walkFileTree(dataPath, new SimpleFileVisitor<>() {
             @SuppressWarnings("ConstantConditions")
             @Override
             public FileVisitResult visitFile(Path p, BasicFileAttributes attrs) throws IOException {
-                Path relativePath = subDataPath.relativize(p);
+                Path relativePath = dataPath.relativize(p);
                 String relativeName = relativePath.toString();
                 ChecksumPath cs = new ChecksumPath();
                 cs.path = relativeName;
@@ -83,7 +74,7 @@ public class FileChecksumProcessor {
             }
         });
 
-        System.out.println(""+subDataPath+", total: " + count + ", different: " + map.size());
+        System.out.println(""+dataPath+", total: " + count + ", different: " + map.size());
         return map;
     }
 

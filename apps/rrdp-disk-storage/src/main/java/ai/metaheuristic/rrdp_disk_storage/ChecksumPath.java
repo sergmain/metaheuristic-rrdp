@@ -1,5 +1,7 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.RrdpEnums;
+
 /**
  * @author Sergio Lissner
  * Date: 6/3/2022
@@ -11,6 +13,7 @@ public class ChecksumPath {
     public long size;
     public String md5First2Chars;
     public String sha1;
+    public RrdpEnums.EntryState state;
 
     @Override
     public String toString() {

@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -21,10 +23,18 @@ public class PersistenceUtils {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    public static List<Path> getPaths(Path path) throws IOException {
+        List<Path> paths = new ArrayList<>();
+        try (final Stream<Path> list = Files.list(path) ) {
+            list.forEach(paths::add);
+        }
+        return paths;
+    }
+
     public static Path resolveSubPath(Path path, String subPathName) throws IOException {
         Path subPath = path.resolve(subPathName);
         if (Files.notExists(subPath)) {
-            Files.createDirectory(subPath);
+            Files.createDirectories(subPath);
         }
         return subPath;
     }
@@ -45,6 +55,7 @@ public class PersistenceUtils {
         return content;
     }
 
+    @Nullable
     @SneakyThrows
     public static String persistContent(
             Path specificMetadataPath, Supplier<String> contentFunc,
@@ -104,6 +115,7 @@ public class PersistenceUtils {
         return datePath;
     }
 
+    @Nullable
     @SneakyThrows
     public static Path getLatestContentFile(Path specificMetadataPath, @Nullable Supplier<LocalDate> localDateFunc) {
         LocalDate lastDate;

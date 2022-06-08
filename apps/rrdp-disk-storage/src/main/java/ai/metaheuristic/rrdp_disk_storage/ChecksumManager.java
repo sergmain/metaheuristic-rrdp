@@ -27,17 +27,15 @@ public class ChecksumManager {
 
     // Load the current checksums
     @SneakyThrows
-    public static Map<String, ChecksumPath> load(Path metadataDataPath, String subPathName) {
-        Path specificDataPath = metadataDataPath.resolve(subPathName);
-        if (Files.notExists(specificDataPath)) {
-            Files.createDirectory(specificDataPath);
-        }
-        System.out.println("Load checksum from " + specificDataPath);
+    public static Map<String, ChecksumPath> load(Path path) {
+        Path checksumPath = MetadataUtils.getChecksumPath(path);
+
+        System.out.println("Load checksum from " + checksumPath);
         final Map<String, ChecksumPath> map = new HashMap<>();
         for (int i = 0; i < 16; i++) {
             for (int j = 0; j < 16; j++) {
                 String name = Integer.toString(i, 16) + Integer.toString(j, 16);
-                Path md5Path = PersistenceUtils.resolveSubPath(specificDataPath, name);
+                Path md5Path = PersistenceUtils.resolveSubPath(checksumPath, name);
                 if (!Files.isDirectory(md5Path)) {
                     throw new IllegalStateException("(!Files.isDirectory(subDataPath)), " + md5Path);
                 }

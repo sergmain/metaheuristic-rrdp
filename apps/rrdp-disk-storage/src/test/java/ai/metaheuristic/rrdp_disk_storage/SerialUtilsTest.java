@@ -19,7 +19,7 @@ public class SerialUtilsTest {
     public void test(@TempDir Path tempPath) {
 
         assertNull(SerialUtils.getSerialFile(tempPath));
-        String serial = SerialUtils.getSerial(tempPath);
+        Integer serial = SerialUtils.getSerial(tempPath);
         assertNull(serial);
 
         String serial1 = SerialUtils.persistSerial(tempPath, 1, LocalDate::now);
@@ -30,9 +30,9 @@ public class SerialUtilsTest {
         assertNotNull(serialPath1);
 
 
-        String serial11 = SerialUtils.getSerial(tempPath);
+        Integer serial11 = SerialUtils.getSerial(tempPath);
         assertNotNull(serial11);
-        assertEquals(1, Integer.parseInt(serial11));
+        assertEquals(1, serial11);
 
 
         String serial2 = SerialUtils.persistSerial(tempPath, 2, LocalDate::now);

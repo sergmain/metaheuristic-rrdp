@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.With;
 
+import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /**
@@ -20,5 +21,6 @@ public class RrdpEntry {
 
     public Supplier<String> uri;
     public Supplier<String> hash;
-    public Supplier<String> content;
+    @Nullable
+    public Supplier<String> content = null;
 }

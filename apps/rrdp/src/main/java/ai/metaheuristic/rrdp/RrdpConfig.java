@@ -5,7 +5,6 @@ import lombok.NoArgsConstructor;
 import lombok.With;
 
 import java.util.Iterator;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -24,13 +23,11 @@ public class RrdpConfig {
     public boolean isFileContent = true;
 
     public Supplier<String> getSession;
-    public Supplier<String> currentNotification;
-    public Supplier<Iterator<RrdpEntry>> rrdpEntryIteator;
+    public Supplier<Notification> currentNotification;
+    public Supplier<Iterator<RrdpEntry>> rrdpEntryIterator;
     public Function<String, Integer> nextSerial;
     public Function<String, Integer> currSerial;
-    public BiFunction<String, Integer, RrdpEntry> entryForSerial;
     public Consumer<String> persistSnapshot;
     public Consumer<String> persistDelta;
-    public Consumer<String> persistNotification;
     public Supplier<RrdpEnums.ProduceType> produceType;
 }

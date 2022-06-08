@@ -16,9 +16,10 @@ public class SerialUtils {
 
     @Nullable
     @SneakyThrows
-    public static String getSerial(Path metadataPath) {
+    public static Integer getSerial(Path metadataPath) {
         Path serialPath = MetadataUtils.getSerialPath(metadataPath);
-        return PersistenceUtils.getLatestContent(serialPath, SerialUtils::verifyAsInteger);
+        final String content = PersistenceUtils.getLatestContent(serialPath, SerialUtils::verifyAsInteger);
+        return content!=null ? Integer.valueOf(content) : null;
     }
 
     private static Boolean verifyAsInteger(@Nullable String s) {

@@ -1,6 +1,7 @@
 package ai.metaheuristic.rrdp;
 
 import java.util.Iterator;
+import java.util.function.Consumer;
 
 import static ai.metaheuristic.rrdp.RrdpEnums.EntryState;
 import static ai.metaheuristic.rrdp.RrdpEnums.ProduceType;
@@ -13,6 +14,9 @@ import static ai.metaheuristic.rrdp.RrdpEnums.ProduceType;
 public class Rrdp {
 
     private final RrdpConfig cfg;
+    public String session;
+    public int serial;
+    public ProduceType produceType;
 
     public Rrdp(RrdpConfig cfg) {
         this.cfg = cfg;
@@ -24,15 +28,15 @@ public class Rrdp {
     }
 
     public void produce() {
-        String session = cfg.getSession.get();
-        int serial = cfg.currSerial.apply(session);
-        final ProduceType produce = serial == 0 ? ProduceType.SNAPSHOT : cfg.produceType.get();
+        session = cfg.getSession.get();
+        serial = cfg.currSerial.apply(session);
+        produceType = serial == 0 ? ProduceType.SNAPSHOT : cfg.produceType.get();
         serial = cfg.nextSerial.apply(session);
-        if (produce== ProduceType.SNAPSHOT && serial!=1) {
+        if (produceType == ProduceType.SNAPSHOT && serial!=1) {
             throw new IllegalStateException("(produce== RrdpEnums.ProduceType.SNAPHOST && serial!=1)");
         }
 
-        switch(produce) {
+        switch(produceType) {
             case SNAPSHOT:
                 produceSnapshot(session);
                 break;
@@ -40,13 +44,46 @@ public class Rrdp {
                 produceDelta(session, serial);
                 break;
         }
-        produceNotification(session, serial);
+    }
+
+    public void produceNotification(UriAndHash uriAndHash, Consumer<String> persistNotification) {
+        Notification n;
+        if (serial>1) {
+            n = cfg.currentNotification.get();
+            if (!n.sessionId.equals(session)) {
+                throw new IllegalStateException("(!n.sessionId.equals(session))");
+            }
+            if (n.serial+1!=serial) {
+                throw new IllegalStateException("(n.serial+1!=serial)");
+            }
+        }
+        else {
+            n = new Notification(session, serial);
+        }
+        n.entries.add(new Notification.Entry(produceType, uriAndHash.uri, uriAndHash.hash, serial));
+
+        persistNotification.accept(
+                "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\""+serial+"\" session_id=\""+session+"\">\n");
+        for (Notification.Entry entry : n.entries) {
+            if (entry.type==ProduceType.SNAPSHOT) {
+                persistNotification.accept(
+                        " <snapshot uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"/>\n");
+            }
+            else if (entry.type==ProduceType.DELTA) {
+                persistNotification.accept(
+                        " <delta serial=\""+entry.serial+"\" uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"/>\n");
+            }
+            else {
+                throw new IllegalStateException("unknown type: " + entry.type);
+            }
+        }
+        persistNotification.accept("</notification>\n");
     }
 
     private void produceSnapshot(String session) {
         cfg.persistSnapshot.accept(
                 "<snapshot xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\"1\" session_id=\""+session+"\">\n");
-        Iterator<RrdpEntry> it = cfg.rrdpEntryIteator.get();
+        Iterator<RrdpEntry> it = cfg.rrdpEntryIterator.get();
         while (it.hasNext()) {
             RrdpEntry entry = it.next();
             if (cfg.rfc8182 && !entry.state.rfc8182) {
@@ -62,6 +99,9 @@ public class Rrdp {
                         " hash=\""+entry.hash.get()+"\"");
             }
             if (cfg.isFileContent) {
+                if (entry.content==null) {
+                    throw new IllegalStateException("(entry.content==null)");
+                }
                 cfg.persistSnapshot.accept(">\n"+entry.content.get()+"\n </publish>\n");
             }
             else {
@@ -74,7 +114,7 @@ public class Rrdp {
     private void produceDelta(String session, int serial) {
         cfg.persistDelta.accept(
                 "<delta xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\""+serial+"\" session_id=\""+session+"\">\n");
-        Iterator<RrdpEntry> it = cfg.rrdpEntryIteator.get();
+        Iterator<RrdpEntry> it = cfg.rrdpEntryIterator.get();
         while (it.hasNext()) {
             RrdpEntry entry = it.next();
             if (cfg.rfc8182 && !entry.state.rfc8182) {
@@ -85,6 +125,9 @@ public class Rrdp {
                         " <publish uri=\""+entry.uri.get()+"\" hash=\""+entry.hash.get()+"\"");
 
                 if (cfg.isFileContent) {
+                    if (entry.content==null) {
+                        throw new IllegalStateException("(entry.content==null)");
+                    }
                     cfg.persistDelta.accept(">\n"+entry.content.get()+"\n  </publish>\n");
                 }
                 else {
@@ -97,43 +140,6 @@ public class Rrdp {
             }
         }
         cfg.persistDelta.accept("</delta>\n");
-    }
-
-    private void produceNotification(String session, int serial) {
-        Notification n;
-        RrdpEntry newEntry = cfg.entryForSerial.apply(session, serial);
-        if (serial>1) {
-            String xml = cfg.currentNotification.get();
-            n = RrdpUtils.parseNotificationXml(xml);
-            if (!n.sessionId.equals(session)) {
-                throw new IllegalStateException("(!n.sessionId.equals(session))");
-            }
-            if (n.serial+1!=serial) {
-                throw new IllegalStateException("(n.serial+1!=serial)");
-            }
-            n.entries.add(new Notification.Entry(ProduceType.DELTA, newEntry.uri.get(), newEntry.hash.get(), serial));
-        }
-        else {
-            n = new Notification(session, serial);
-            n.entries.add(new Notification.Entry(ProduceType.SNAPSHOT, newEntry.uri.get(), newEntry.hash.get(), 1));
-        }
-
-        cfg.persistNotification.accept(
-                "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\""+serial+"\" session_id=\""+session+"\">\n");
-        for (Notification.Entry entry : n.entries) {
-            if (entry.type==ProduceType.SNAPSHOT) {
-                cfg.persistNotification.accept(
-                        " <snapshot uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"/>\n");
-            }
-            else if (entry.type==ProduceType.DELTA) {
-                cfg.persistNotification.accept(
-                        " <delta serial=\""+entry.serial+"\" uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"/>\n");
-            }
-            else {
-                throw new IllegalStateException("unknown type: " + entry.type);
-            }
-        }
-        cfg.persistNotification.accept("</notification>\n");
     }
 
 }
