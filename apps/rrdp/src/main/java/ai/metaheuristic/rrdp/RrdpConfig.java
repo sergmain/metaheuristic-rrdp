@@ -25,7 +25,6 @@ public class RrdpConfig {
     public Supplier<String> getSession;
     public Supplier<Notification> currentNotification;
     public Supplier<Iterator<RrdpEntry>> rrdpEntryIterator;
-    public Function<String, Integer> nextSerial;
     public Function<String, Integer> currSerial;
     public Consumer<String> persistSnapshot;
     public Consumer<String> persistDelta;

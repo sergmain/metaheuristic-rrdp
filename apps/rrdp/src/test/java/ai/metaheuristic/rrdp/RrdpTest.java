@@ -19,7 +19,7 @@ public class RrdpTest {
     @Test
     public void test_snapshot_01() {
         String session = UUID.randomUUID().toString();
-        int serial = 0;
+        int serial = 1;
 
         StringWriter snapshot = new StringWriter();
         StringWriter delta = new StringWriter();
@@ -36,7 +36,6 @@ public class RrdpTest {
                 .withGetSession(()->session)
                 .withCurrentNotification(()->null)
                 .withRrdpEntryIterator(()-> List.of(en1, en2, en3).iterator())
-                .withNextSerial((s)->serial+1)
                 .withCurrSerial((s)->serial)
                 .withPersistSnapshot(snapshot::write)
                 .withPersistDelta(delta::write)
@@ -80,7 +79,7 @@ public class RrdpTest {
     @Test
     public void test_delta_01() {
         String session = UUID.randomUUID().toString();
-        int serial = 1;
+        int serial = 2;
 
         StringWriter snapshot = new StringWriter();
         StringWriter delta = new StringWriter();
@@ -98,7 +97,6 @@ public class RrdpTest {
                 .withGetSession(()->session)
                 .withCurrentNotification(()->null)
                 .withRrdpEntryIterator(()-> List.of(en1, en2, en3, en4).iterator())
-                .withNextSerial((s)->serial+1)
                 .withCurrSerial((s)->serial)
                 .withPersistSnapshot(snapshot::write)
                 .withPersistDelta(delta::write)

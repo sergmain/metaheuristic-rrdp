@@ -31,7 +31,8 @@ public class PersistenceUtils {
         return paths;
     }
 
-    public static Path resolveSubPath(Path path, String subPathName) throws IOException {
+    @SneakyThrows
+    public static Path resolveSubPath(Path path, String subPathName) {
         Path subPath = path.resolve(subPathName);
         if (Files.notExists(subPath)) {
             Files.createDirectories(subPath);

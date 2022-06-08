@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.RrdpEnums;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -28,20 +29,21 @@ import static java.nio.file.StandardOpenOption.READ;
  */
 public class FileChecksumProcessor {
 
+    public enum DifferenceType {new_one, different, the_same}
+
     @SneakyThrows
-    public static void process(Path specificMetadataPath, Path dataPath, Consumer<Map<String, ChecksumPath>> consumeFunc) {
+    public static Map<String, ChecksumPath> process(Path specificMetadataPath, Path dataPath) {
         if (Files.notExists(dataPath)) {
-            return;
+            return Map.of();
         }
 
-        Path checksumPath = MetadataUtils.getChecksumPath(specificMetadataPath);
-        Map<String, ChecksumPath> diff = processDiff(checksumPath, dataPath);
-        consumeFunc.accept(diff);
+        Map<String, ChecksumPath> diff = processDiff(specificMetadataPath, dataPath);
+        return diff;
     }
 
     @SneakyThrows
-    private static Map<String, ChecksumPath> processDiff(Path checksumPath, Path dataPath) {
-        final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(checksumPath);
+    private static Map<String, ChecksumPath> processDiff(Path specificMetadataPath, Path dataPath) {
+        final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(specificMetadataPath);
         final Map<String, ChecksumPath> newMap = loadChecksumPath(dataPath, calculatedMap);
 
         int i=0;
@@ -66,9 +68,12 @@ public class FileChecksumProcessor {
                 cs.md5First2Chars = nameMd5.substring(0, 2);
                 cs.sha1 = calcSha1(p);
 
-                if (isDifferent(calculatedMap, cs)) {
+                final DifferenceType differenceType = isDifferent(calculatedMap, cs);
+                if (differenceType!=DifferenceType.the_same) {
+                    cs.state = differenceType==DifferenceType.new_one ? RrdpEnums.EntryState.PUBLISHED : RrdpEnums.EntryState.UPDATED;
                     map.put(relativeName, cs);
                 }
+
                 count.incrementAndGet();
                 return FileVisitResult.CONTINUE;
             }
@@ -78,18 +83,18 @@ public class FileChecksumProcessor {
         return map;
     }
 
-    private static boolean isDifferent(Map<String, ChecksumPath> map, ChecksumPath cs) {
+    private static DifferenceType isDifferent(Map<String, ChecksumPath> map, ChecksumPath cs) {
         ChecksumPath check = map.get(cs.path);
         if (check==null) {
-            return true;
+            return DifferenceType.new_one;
         }
         if (check.size!=cs.size) {
-            return true;
+            return DifferenceType.different;
         }
         if (!check.sha1.equals(cs.sha1)) {
-            return true;
+            return DifferenceType.different;
         }
-        return false;
+        return DifferenceType.the_same;
     }
 
     @Nullable

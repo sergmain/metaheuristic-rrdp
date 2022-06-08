@@ -30,8 +30,7 @@ public class Rrdp {
     public void produce() {
         session = cfg.getSession.get();
         serial = cfg.currSerial.apply(session);
-        produceType = serial == 0 ? ProduceType.SNAPSHOT : cfg.produceType.get();
-        serial = cfg.nextSerial.apply(session);
+        produceType = serial == 1 ? ProduceType.SNAPSHOT : cfg.produceType.get();
         if (produceType == ProduceType.SNAPSHOT && serial!=1) {
             throw new IllegalStateException("(produce== RrdpEnums.ProduceType.SNAPHOST && serial!=1)");
         }

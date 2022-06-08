@@ -25,9 +25,10 @@ public class WalkerTest {
         final Path actualDataPath = Path.of(startPoint);
 
 
-        List<Path> metadataDataPaths = PersistenceUtils.getPaths(metadataPath);
-        for (Path metadataDataPath : metadataDataPaths) {
-            processDataPath(metadataDataPath, actualDataPath);
+        List<Path> metadataDataPaths = PersistenceUtils.getPaths(actualDataPath);
+        for (Path dataPath : metadataDataPaths) {
+            Path actualMetadataPath = PersistenceUtils.resolveSubPath(metadataPath, dataPath.getFileName().toString());
+            processDataPath(actualMetadataPath, dataPath);
         }
 //        FileChecksumProcessor.process(metadataPath, Path.of(startPoint), (x) -> {
 //            x.values().forEach(System.out::println);
@@ -51,9 +52,14 @@ public class WalkerTest {
         String notificationXml = NotificationUtils.getNotification(path);
         final Notification n = notificationXml == null ? new Notification() : RrdpUtils.parseNotificationXml(notificationXml);
 
-        FileChecksumProcessor.process(path, actualDataPath, (x) -> {
-            x.values().forEach(System.out::println);
-        });
+        Map<String, ChecksumPath> diff = FileChecksumProcessor.process(path, actualDataPath);
+        diff.forEach( (k, v) -> System.out.println(v));
+        ChecksumManager.persist(path, diff);
+
+        if (diff.isEmpty()) {
+            System.out.println("No difference since last check");
+            return;
+        }
 
         Map<String, ChecksumPath> map = ChecksumManager.load(path);
         Iterator<ChecksumPath> iter = map.values().iterator();
@@ -80,7 +86,6 @@ public class WalkerTest {
                 .withGetSession(()-> finalSession)
                 .withCurrentNotification(()->n)
                 .withRrdpEntryIterator(()-> it)
-                .withNextSerial((s)-> finalSerial +1)
                 .withCurrSerial((s)->finalSerial)
                 .withPersistSnapshot(snapshot::write)
                 .withPersistDelta(delta::write)
@@ -88,6 +93,8 @@ public class WalkerTest {
 
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();
+
+        SerialUtils.persistSerial(path, serial+1, LocalDate::now);
 
         StringWriter notification = new StringWriter();
         rrdp.produceNotification(new UriAndHash("http://notification-snapshot", DigestUtils.sha256Hex(snapshot.toString())), notification::write);

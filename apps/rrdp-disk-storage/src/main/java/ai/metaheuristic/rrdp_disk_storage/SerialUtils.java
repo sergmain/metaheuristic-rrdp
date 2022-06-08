@@ -38,13 +38,15 @@ public class SerialUtils {
     }
 
     @SneakyThrows
+    @Nullable
     public static String persistSerial(Path metadataPath, int serial, Supplier<LocalDate> localDateFunc ) {
         Path serialPath = MetadataUtils.getSerialPath(metadataPath);
         return PersistenceUtils.persistContent(
-                serialPath, ()->Integer.toString(serial), SerialUtils::verifyAsInteger, localDateFunc);
+                serialPath, () -> Integer.toString(serial), SerialUtils::verifyAsInteger, localDateFunc);
     }
 
     @SneakyThrows
+    @Nullable
     public static Path getSerialFile(Path metadataPath) {
         Path serialPath = MetadataUtils.getSerialPath(metadataPath);
         return PersistenceUtils.getLatestContentFile(serialPath, null);
