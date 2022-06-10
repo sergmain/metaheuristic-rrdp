@@ -1,24 +1,20 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
-import ai.metaheuristic.rrdp.RrdpEnums;
+import ai.metaheuristic.rrdp.*;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import javax.annotation.Nullable;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static java.nio.file.StandardOpenOption.READ;
 
@@ -31,6 +27,23 @@ public class FileChecksumProcessor {
 
     public enum DifferenceType {new_one, different, the_same}
 
+    @RequiredArgsConstructor
+    public static class ProcessorParams {
+        @Nullable
+        public final String entryUriPrefix;
+        @Nullable
+        public final String notificationEntryUriPrefix;
+    }
+
+    @SneakyThrows
+    public static void processPath(Path metadataPath, Path actualDataPath, ProcessorParams params) {
+        List<Path> metadataDataPaths = PersistenceUtils.getPaths(actualDataPath);
+        for (Path dataPath : metadataDataPaths) {
+            Path actualMetadataPath = PersistenceUtils.resolveSubPath(metadataPath, dataPath.getFileName().toString());
+            processDataPath(actualMetadataPath, dataPath, params);
+        }
+    }
+
     @SneakyThrows
     public static Map<String, ChecksumPath> process(Path specificMetadataPath, Path dataPath) {
         if (Files.notExists(dataPath)) {
@@ -41,13 +54,96 @@ public class FileChecksumProcessor {
         return diff;
     }
 
+    private static void processDataPath(Path path, Path actualDataPath, final ProcessorParams params) throws IOException {
+
+        String prefixPath = path.getFileName().toString();
+
+        String session = SessionUtils.getSession(path);
+        if (session==null) {
+            session = UUID.randomUUID().toString();
+            SessionUtils.persistSession(path, session, LocalDate::now);
+        }
+
+        Integer serial = SerialUtils.getSerial(path);
+        if (serial==null) {
+            serial = 1;
+            SerialUtils.persistSerial(path, serial, LocalDate::now);
+        }
+
+        String notificationXml = NotificationUtils.getNotification(path);
+        final Notification n = notificationXml == null
+                ? new Notification()
+                : RrdpUtils.parseNotificationXml(notificationXml);
+
+        Map<String, ChecksumPath> diff = FileChecksumProcessor.process(path, actualDataPath);
+//        diff.forEach( (k, v) -> System.out.println(v));
+        ChecksumManager.persist(path, diff);
+
+        if (diff.isEmpty()) {
+            System.out.println("No difference since last check");
+            return;
+        }
+        else {
+            System.out.println("Found " + diff.size() +" new or changed entries");
+        }
+
+        Iterator<ChecksumPath> iter = diff.values().iterator();
+
+        Iterator<RrdpEntry> it = new Iterator<>() {
+            @Override
+            public boolean hasNext() {
+                return iter.hasNext();
+            }
+            @Override
+            public RrdpEntry next() {
+                final ChecksumPath next = iter.next();
+                return toRrdpEntry(next, prefixPath, params);
+            }
+        };
+
+        final StringWriter notificationEntry = new StringWriter();
+        final String finalSession = session;
+        final int finalSerial = serial;
+        RrdpConfig cfg = new RrdpConfig()
+                .withRfc8182(false)
+                .withFileContent(false)
+                .withGetSession(() -> finalSession)
+                .withCurrentNotification(() -> n)
+                .withRrdpEntryIterator(() -> it)
+                .withCurrSerial((s) -> finalSerial)
+                .withPersistNotificationEntry(notificationEntry::write)
+                .withProduceType(() -> finalSerial == 1 ? RrdpEnums.NotificationEntryType.SNAPSHOT : RrdpEnums.NotificationEntryType.DELTA);
+
+        Rrdp rrdp = new Rrdp(cfg);
+        rrdp.produce();
+
+        SerialUtils.persistSerial(path, serial + 1, LocalDate::now);
+
+        Path entryPath = MetadataUtils.getEntryPath(path);
+        String entryFilename = PersistenceUtils.formatFilename(serial, ".xml");
+        Path entryFile = entryPath.resolve(entryFilename);
+        Files.writeString(entryFile, notificationEntry.toString());
+
+        StringWriter notification = new StringWriter();
+        final String uri = PersistenceUtils.asUri(params.notificationEntryUriPrefix, prefixPath + '/' + MetadataUtils.ENTRY_METADATA_PATH + '/' + entryFilename);
+        rrdp.produceNotification(new UriAndHash(uri, DigestUtils.sha256Hex(notificationEntry.toString())), notification::write);
+
+        NotificationUtils.persistNotification(path, notification.toString(), LocalDate::now);
+    }
+
+    public static RrdpEntry toRrdpEntry(ChecksumPath checksumPath, String prefixPath, final ProcessorParams params) {
+        RrdpEntry entry= new RrdpEntry()
+                .withState(checksumPath.state)
+                .withUri(()-> PersistenceUtils.asUri(params.notificationEntryUriPrefix, prefixPath + '/' + checksumPath.path))
+                .withHash(()->checksumPath.sha1);
+
+        return entry;
+    }
+
     @SneakyThrows
     private static Map<String, ChecksumPath> processDiff(Path specificMetadataPath, Path dataPath) {
         final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(specificMetadataPath);
         final Map<String, ChecksumPath> newMap = loadChecksumPath(dataPath, calculatedMap);
-
-        int i=0;
-        //                Files.writeString(checkSumPath, ""+relativeName+"\n", CREATE, APPEND, WRITE);
         return newMap;
     }
 
@@ -105,52 +201,5 @@ public class FileChecksumProcessor {
         try (InputStream is = Files.newInputStream(p, READ)) {
             return DigestUtils.sha1Hex(is);
         }
-    }
-
-    @Nullable
-    private static String calcMd5For256Bytes(Path p) throws IOException {
-        if (Files.size(p)==0) {
-            return null;
-        }
-        byte[] bytes = new byte[256];
-        int count;
-        try (InputStream is = Files.newInputStream(p, READ)) {
-            count = read(is, bytes, 0, bytes.length);
-        }
-        try (InputStream is = new ByteArrayInputStream(bytes, 0, count)) {
-            return DigestUtils.md5Hex(is);
-        }
-    }
-
-    // copied from org.apache.commons.io.IOUtils.read(java.io.InputStream, byte[], int, int)
-    /**
-     * Reads bytes from an input stream.
-     * This implementation guarantees that it will read as many bytes
-     * as possible before giving up; this may not always be the case for
-     * subclasses of {@link InputStream}.
-     *
-     * @param input where to read input from
-     * @param buffer destination
-     * @param offset initial offset into buffer
-     * @param length length to read, must be &gt;= 0
-     * @return actual length read; may be less than requested if EOF was reached
-     * @throws IOException if a read error occurs
-     * @since 2.2
-     */
-    public static int read(final InputStream input, final byte[] buffer, final int offset, final int length)
-            throws IOException {
-        if (length < 0) {
-            throw new IllegalArgumentException("Length must not be negative: " + length);
-        }
-        int remaining = length;
-        while (remaining > 0) {
-            final int location = length - remaining;
-            final int count = input.read(buffer, offset + location, remaining);
-            if (count==-1) { // EOF
-                break;
-            }
-            remaining -= count;
-        }
-        return length - remaining;
     }
 }

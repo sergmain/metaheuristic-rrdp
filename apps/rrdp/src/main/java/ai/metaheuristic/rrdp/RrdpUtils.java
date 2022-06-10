@@ -64,7 +64,7 @@ public class RrdpUtils {
                     }
                     else if ("snapshot".equals(elementName) || "delta".equals(elementName)) {
                         Notification.Entry entry = new Notification.Entry();
-                        entry.type = "snapshot".equals(elementName) ? RrdpEnums.ProduceType.SNAPSHOT : RrdpEnums.ProduceType.DELTA;
+                        entry.type = "snapshot".equals(elementName) ? RrdpEnums.NotificationEntryType.SNAPSHOT : RrdpEnums.NotificationEntryType.DELTA;
                         notification.entries.add(entry);
                         initAttrForEntry(startElement.getAttributes(), entry);
                     }

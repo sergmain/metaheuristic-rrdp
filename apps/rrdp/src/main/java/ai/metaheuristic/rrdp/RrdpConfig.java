@@ -26,7 +26,6 @@ public class RrdpConfig {
     public Supplier<Notification> currentNotification;
     public Supplier<Iterator<RrdpEntry>> rrdpEntryIterator;
     public Function<String, Integer> currSerial;
-    public Consumer<String> persistSnapshot;
-    public Consumer<String> persistDelta;
-    public Supplier<RrdpEnums.ProduceType> produceType;
+    public Consumer<String> persistNotificationEntry;
+    public Supplier<RrdpEnums.NotificationEntryType> produceType;
 }

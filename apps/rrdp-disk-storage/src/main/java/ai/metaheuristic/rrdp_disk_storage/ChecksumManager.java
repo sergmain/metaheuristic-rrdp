@@ -2,14 +2,13 @@ package ai.metaheuristic.rrdp_disk_storage;
 
 import lombok.SneakyThrows;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static java.nio.file.StandardOpenOption.*;
 
@@ -20,12 +19,7 @@ import static java.nio.file.StandardOpenOption.*;
  */
 public class ChecksumManager {
 
-    public static final int CHECKSUM_PATH_LENGTH = 2;
     public static final String CHECKSUM_JSON = "checksum.json";
-
-    public static void calc() {
-        Path metadataDataPath;
-    }
 
     // Load the current checksums
     @SneakyThrows
@@ -44,6 +38,7 @@ public class ChecksumManager {
                 loadSubPath(md5Path, map);
             }
         }
+        System.out.println((map.isEmpty() ? "No entries in " : "Loaded " + map.size() + " entries from ")+ checksumPath);
         return map;
     }
 
@@ -78,23 +73,9 @@ public class ChecksumManager {
                     .map(ChecksumManager::toChecksumPath)
                     .forEach(c->checksumPaths.put(c.path, c));
         }
-        System.out.println(""+subDataPath+": " + checksumPaths.size());
+//        System.out.println(""+subDataPath+": " + checksumPaths.size());
     }
 
-/*
-    @SneakyThrows
-    private static void loadSubPath(Path subDataPath, final Map<String, ChecksumPath> checksumPaths) {
-        String json = ChechsumUtils.getChecksum(subDataPath);
-        if (json==null || json.length()==0) {
-            return;
-        }
-        try (StringReader sr = new StringReader(json); BufferedReader br = new BufferedReader(sr)) {
-            br.lines().map(ChecksumManager::toChecksumPath).forEach(c->checksumPaths.put(c.path, c));
-        }
-        System.out.println(""+subDataPath+": " + checksumPaths.size());
-    }
-
-*/
     @SneakyThrows
     private static ChecksumPath toChecksumPath(String json) {
         ChecksumPath checksumPath = JsonUtils.getMapper().readValue(json, ChecksumPath.class);

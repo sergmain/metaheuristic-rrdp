@@ -37,9 +37,9 @@ public class RrdpTest {
                 .withCurrentNotification(()->null)
                 .withRrdpEntryIterator(()-> List.of(en1, en2, en3).iterator())
                 .withCurrSerial((s)->serial)
-                .withPersistSnapshot(snapshot::write)
-                .withPersistDelta(delta::write)
-                .withProduceType(()-> RrdpEnums.ProduceType.SNAPSHOT);
+                .withPersistNotificationEntry(snapshot::write)
+                .withPersistNotificationEntry(delta::write)
+                .withProduceType(()-> RrdpEnums.NotificationEntryType.SNAPSHOT);
 
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();
@@ -71,7 +71,7 @@ public class RrdpTest {
         Notification.Entry e1 = n.entries.stream().filter(o->o.serial==null).findFirst().orElseThrow();
 
         assertNull(e1.serial);
-        assertEquals(RrdpEnums.ProduceType.SNAPSHOT, e1.type);
+        assertEquals(RrdpEnums.NotificationEntryType.SNAPSHOT, e1.type);
         assertEquals(en4.hash.get(), e1.hash);
         assertEquals(en4.uri.get(), e1.uri);
     }
@@ -81,8 +81,7 @@ public class RrdpTest {
         String session = UUID.randomUUID().toString();
         int serial = 2;
 
-        StringWriter snapshot = new StringWriter();
-        StringWriter delta = new StringWriter();
+        StringWriter notificationEntry = new StringWriter();
         StringWriter notification = new StringWriter();
 
         RrdpEntry en1 = publishEntry("entry #1", "http://uri1");
@@ -98,22 +97,19 @@ public class RrdpTest {
                 .withCurrentNotification(()->null)
                 .withRrdpEntryIterator(()-> List.of(en1, en2, en3, en4).iterator())
                 .withCurrSerial((s)->serial)
-                .withPersistSnapshot(snapshot::write)
-                .withPersistDelta(delta::write)
-                .withProduceType(()-> RrdpEnums.ProduceType.DELTA);
+                .withPersistNotificationEntry(notificationEntry::write)
+                .withProduceType(()-> RrdpEnums.NotificationEntryType.DELTA);
 
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();
 
-        String snapshotXml = snapshot.toString();
-        String deltaXml = delta.toString();
+        String notificationEntryXml = notificationEntry.toString();
         String notificationXml = notification.toString();
 
-        System.out.println(deltaXml);
+        System.out.println(notificationEntryXml);
         System.out.println(notificationXml);
 
-        assertEquals(0, snapshotXml.length());
-        assertNotEquals(0, deltaXml.length());
+        assertNotEquals(0, notificationEntryXml.length());
         assertNotEquals(0, notificationXml.length());
     }
 

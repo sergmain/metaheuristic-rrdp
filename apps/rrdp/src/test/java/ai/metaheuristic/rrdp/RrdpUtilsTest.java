@@ -30,17 +30,17 @@ public class RrdpUtilsTest {
         Notification.Entry e3 = n.entries.stream().filter(o->Integer.valueOf(3).equals(o.serial)).findFirst().orElseThrow();
 
         assertNull(e1.serial);
-        assertEquals(RrdpEnums.ProduceType.SNAPSHOT, e1.type);
+        assertEquals(RrdpEnums.NotificationEntryType.SNAPSHOT, e1.type);
         assertEquals("AB", e1.hash);
         assertEquals("https://host/9d-8/1/snapshot.xml", e1.uri);
 
         assertEquals(2, e2.serial);
-        assertEquals(RrdpEnums.ProduceType.DELTA, e2.type);
+        assertEquals(RrdpEnums.NotificationEntryType.DELTA, e2.type);
         assertEquals("EF", e2.hash);
         assertEquals("https://host/9d-8/2/delta.xml", e2.uri);
 
         assertEquals(3, e3.serial);
-        assertEquals(RrdpEnums.ProduceType.DELTA, e3.type);
+        assertEquals(RrdpEnums.NotificationEntryType.DELTA, e3.type);
         assertEquals("CD", e3.hash);
         assertEquals("https://host/9d-8/3/delta.xml", e3.uri);
     }

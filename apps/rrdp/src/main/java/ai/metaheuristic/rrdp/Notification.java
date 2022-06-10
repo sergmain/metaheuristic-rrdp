@@ -18,7 +18,7 @@ public class Notification {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Entry {
-        public RrdpEnums.ProduceType type;
+        public RrdpEnums.NotificationEntryType type;
         public String uri;
         public String hash;
         public Integer serial;

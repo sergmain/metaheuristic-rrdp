@@ -17,20 +17,21 @@ public class NotificationUtils {
     @SneakyThrows
     @Nullable
     public static String getNotification(Path metadataPath) {
-        Path dataPath = MetadataUtils.getDataPath(metadataPath);
+        Path dataPath = MetadataUtils.getNotificationPath(metadataPath);
         return PersistenceUtils.getLatestContent(dataPath, (o)->true);
     }
 
     @SneakyThrows
+    @Nullable
     public static String persistNotification(Path metadataPath, String notificationXml, Supplier<LocalDate> localDateFunc ) {
-        Path dataPath = MetadataUtils.getDataPath(metadataPath);
+        Path dataPath = MetadataUtils.getNotificationPath(metadataPath);
         return PersistenceUtils.persistContent(dataPath, ()->notificationXml, (o)->true, localDateFunc);
     }
 
     @SneakyThrows
     @Nullable
     public static Path getNotificationFile(Path metadataPath) {
-        Path dataPath = MetadataUtils.getDataPath(metadataPath);
+        Path dataPath = MetadataUtils.getNotificationPath(metadataPath);
         return PersistenceUtils.getLatestContentFile(dataPath, null);
     }
 }

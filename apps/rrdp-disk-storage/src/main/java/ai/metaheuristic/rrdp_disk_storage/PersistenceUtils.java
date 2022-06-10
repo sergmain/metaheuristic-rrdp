@@ -43,13 +43,13 @@ public class PersistenceUtils {
     @Nullable
     @SneakyThrows
     public static String getLatestContent(
-            Path specificMetadataPath, Function<String, Boolean> vefiryContentFunc) {
+            Path specificMetadataPath, Function<String, Boolean> verifyContentFunc) {
 
         Path latestContentFile = getLatestContentFile(specificMetadataPath, null);
         String content = null;
         if (latestContentFile!=null) {
             content = Files.readString(latestContentFile);
-            if (!vefiryContentFunc.apply(content)) {
+            if (!verifyContentFunc.apply(content)) {
                 throw new IllegalStateException("Wrong content: " + content);
             }
         }
@@ -80,12 +80,32 @@ public class PersistenceUtils {
     private static void persistContentInternal(String content, Path specificMetadataPath, Supplier<LocalDate> localDateFunc) {
         Path datePath = getDatePath(specificMetadataPath, localDateFunc);
         int maxFileNumber = getCurrMaxFileNumber(datePath);
-        Path actualLatestContentFile = getActualLatestContentFile(datePath, maxFileNumber + 1);
+        Path actualLatestContentFile = getFilenameForNumber(datePath, maxFileNumber + 1);
         Files.writeString(actualLatestContentFile, content);
     }
 
-    private static Path getActualLatestContentFile(Path datePath, int actualFilenamenumber) {
-        return datePath.resolve(String.format("%06d.txt", actualFilenamenumber));
+    public static String asUri(@Nullable String base, String part) {
+        final String newPart = part.replace('\\', '/');
+        final String uri;
+        if (base != null) {
+            uri = base.charAt(base.length()-1)=='/' ? base + newPart : base + '/' + newPart;
+        }
+        else {
+            uri = newPart;
+        }
+        return uri;
+    }
+
+    public static Path getFilenameForNumber(Path parentPath, int filenameNumber) {
+        return getFilenameForNumber(parentPath, filenameNumber, ".txt");
+    }
+
+    public static Path getFilenameForNumber(Path parentPath, int filenameNumber, String ext) {
+        return parentPath.resolve(formatFilename(filenameNumber, ext));
+    }
+
+    public static String formatFilename(int filenameNumber, String ext) {
+        return String.format("%06d%s", filenameNumber, ext);
     }
 
     @SneakyThrows
@@ -143,7 +163,7 @@ public class PersistenceUtils {
         if (maxFileNumber==-1) {
             return null;
         }
-        Path actualLatestContentFile = getActualLatestContentFile(datePath, maxFileNumber);
+        Path actualLatestContentFile = getFilenameForNumber(datePath, maxFileNumber);
         if (Files.notExists(actualLatestContentFile)) {
             throw new IllegalStateException("File " + actualLatestContentFile + " doesn't exist");
         }
