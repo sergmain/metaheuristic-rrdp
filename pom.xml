@@ -18,7 +18,8 @@
     <modules>
         <module>apps/rrdp</module>
         <module>apps/rrdp-disk-storage</module>
-        <module>apps/rrdp-web-ri</module>
+        <module>apps/rrdp-client</module>
+        <module>apps/rrdp-srv</module>
     </modules>
 
 </project>
