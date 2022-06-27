@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * @author Sergio Lissner
@@ -29,6 +30,11 @@ public class RrdpRestController {
 
     public static final String REST_V_1_REPLICATION_DATA = "/rest/v1/replication/data/";
     private final ContentService contentService;
+
+    @GetMapping(value= "/codes", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<String> getDataCodes() {
+        return contentService.getDataCodes();
+    }
 
     // http://localhost:8080/rest/v1/replication/entry/edition/000001.xml
     @GetMapping(value= "/entry/{dataCode}/{uri}", produces = MediaType.APPLICATION_XML_VALUE)

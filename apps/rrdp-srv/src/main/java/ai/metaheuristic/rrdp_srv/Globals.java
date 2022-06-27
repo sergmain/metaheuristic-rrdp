@@ -30,6 +30,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class Globals {
 
+    public static final Duration SECONDS_60 = Duration.ofSeconds(60);
     public static final Duration SECONDS_120 = Duration.ofSeconds(120);
 
     @Component
@@ -58,10 +59,17 @@ public class Globals {
     public static class Timeout {
 
         @DurationUnit(ChronoUnit.SECONDS)
-        public Duration notificationRefresh = Duration.ofSeconds(10);
+        public Duration notificationRefresh = Duration.ofSeconds(120);
+        @DurationUnit(ChronoUnit.SECONDS)
+        public Duration codesRefresh = Duration.ofSeconds(60);
+
 
         public Duration getNotificationRefresh() {
-            return notificationRefresh.toSeconds() >= 10 && notificationRefresh.toSeconds() <= 3600 ? notificationRefresh : SECONDS_120;
+            return notificationRefresh.toSeconds() >= 120 && notificationRefresh.toSeconds() <= 3600 ? notificationRefresh : SECONDS_120;
+        }
+
+        public Duration getCodesRefresh() {
+            return codesRefresh.toSeconds() >= 60 && codesRefresh.toSeconds() <= 600 ? codesRefresh : SECONDS_60;
         }
     }
 
@@ -78,6 +86,7 @@ public class Globals {
     public final Timeout timeout = new Timeout();
     public final ThreadNumber threadNumber = new ThreadNumber();
 
+    public boolean sslRequired = false;
     public boolean testing = false;
 
     @SneakyThrows
@@ -135,6 +144,8 @@ public class Globals {
         log.info("Current globals:");
         log.info("'\ttesting: {}", testing);
         log.info("'\tthreadNumber.scheduler: {}", threadNumber.getScheduler());
+        log.info("'\ttimeout.notificationRefresh: {}", timeout.getNotificationRefresh());
+        log.info("'\ttimeout.codesRefresh: {}", timeout.getCodesRefresh());
         log.info("'\tpath.metadata: {}", path.metadata.path !=null ? path.metadata.path : "<!!!ERROR!!! path.metadata is null>");
         log.info("'\tpath.source: {}", path.source.path !=null ? path.source.path : "<!!!ERROR!!! path.source is null>");
     }

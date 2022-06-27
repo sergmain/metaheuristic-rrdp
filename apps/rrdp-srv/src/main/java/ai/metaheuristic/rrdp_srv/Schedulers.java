@@ -33,6 +33,9 @@ public class Schedulers {
             taskRegistrar.addTriggerTask( this::notificationContentRefresher,
                     context -> {
                         Optional<Date> lastCompletionTime = Optional.ofNullable(context.lastCompletionTime());
+                        if (lastCompletionTime.isEmpty()) {
+                            return new Date();
+                        }
                         Instant nextExecutionTime = lastCompletionTime.orElseGet(Date::new).toInstant().plusSeconds(globals.timeout.getNotificationRefresh().toSeconds());
                         return Date.from(nextExecutionTime);
                     }
@@ -43,8 +46,40 @@ public class Schedulers {
             if (globals.testing) {
                 return;
             }
-            log.info("Invoking artifactCleanerAtDispatcher.fixedDelay()");
+            log.info("Invoking notificationService.refreshNotificationContents()");
             notificationService.refreshNotificationContents();
+        }
+    }
+
+    @Configuration
+    @EnableScheduling
+    @RequiredArgsConstructor
+    @Slf4j
+    public static class CodesRefresherSchedulingConfig implements SchedulingConfigurer {
+        private final Globals globals;
+        private final ContentService notificationService;
+
+        @Override
+        public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+            taskRegistrar.setScheduler(Executors.newSingleThreadScheduledExecutor());
+            taskRegistrar.addTriggerTask( this::notificationContentRefresher,
+                    context -> {
+                        Optional<Date> lastCompletionTime = Optional.ofNullable(context.lastCompletionTime());
+                        if (lastCompletionTime.isEmpty()) {
+                            return new Date();
+                        }
+                        Instant nextExecutionTime = lastCompletionTime.orElseGet(Date::new).toInstant().plusSeconds(globals.timeout.getCodesRefresh().toSeconds());
+                        return Date.from(nextExecutionTime);
+                    }
+            );
+        }
+
+        public void notificationContentRefresher() {
+            if (globals.testing) {
+                return;
+            }
+            log.info("Invoking notificationService.refreshDataCodes()");
+            notificationService.refreshDataCodes();
         }
     }
 
