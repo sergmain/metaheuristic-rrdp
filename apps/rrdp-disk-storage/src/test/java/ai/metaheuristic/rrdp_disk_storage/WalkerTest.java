@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import static ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor.*;
  */
 public class WalkerTest {
 
+    @Disabled("Not actual test")
     @Test
     public void process() throws IOException {
 //        final String startPoint = "D:\\test-files-edition\\edition\\stat2";

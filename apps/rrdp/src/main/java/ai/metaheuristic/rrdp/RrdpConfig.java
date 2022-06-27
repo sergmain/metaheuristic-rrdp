@@ -21,6 +21,7 @@ public class RrdpConfig {
 
     public boolean rfc8182 = true;
     public boolean isFileContent = true;
+    public boolean lengthOfContent = false;
 
     public Supplier<String> getSession;
     public Supplier<Notification> currentNotification;

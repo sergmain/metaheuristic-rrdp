@@ -3,6 +3,7 @@ package ai.metaheuristic.rrdp;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +23,8 @@ public class Notification {
         public String uri;
         public String hash;
         public Integer serial;
+        @Nullable
+        public Integer length;
     }
 
     public String sessionId;

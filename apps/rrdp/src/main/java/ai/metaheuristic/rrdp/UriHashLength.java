@@ -8,7 +8,8 @@ import lombok.AllArgsConstructor;
  * Time: 11:21 PM
  */
 @AllArgsConstructor
-public class UriAndHash {
+public class UriHashLength {
     public String uri;
     public String hash;
+    public int length;
 }

@@ -22,5 +22,7 @@ public class RrdpEntry {
     public Supplier<String> uri;
     public Supplier<String> hash;
     @Nullable
+    public Supplier<Integer> length;
+    @Nullable
     public Supplier<String> content = null;
 }

@@ -96,6 +96,9 @@ public class RrdpUtils {
                 case "hash":
                     entry.hash = attribute.getValue();
                     break;
+                case "length":
+                    entry.length = Integer.parseInt(attribute.getValue());
+                    break;
                 default:
                     throw new IllegalStateException("Malformed xml, unknown xml attribute: " + attrName);
             }

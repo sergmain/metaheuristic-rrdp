@@ -25,6 +25,9 @@ public class Rrdp {
             if (!cfg.isFileContent) {
                 throw new IllegalStateException("(!cfg.isFileContent)");
             }
+            if (cfg.lengthOfContent) {
+                throw new IllegalStateException("(cfg.lengthOfContent)");
+            }
         }
     }
 
@@ -46,7 +49,7 @@ public class Rrdp {
         }
     }
 
-    public void produceNotification(UriAndHash uriAndHash, Consumer<String> persistNotification) {
+    public void produceNotification(UriHashLength uriHashLength, Consumer<String> persistNotification) {
         Notification n;
         if (serial>1) {
             n = cfg.currentNotification.get();
@@ -60,22 +63,26 @@ public class Rrdp {
         else {
             n = new Notification(session, serial);
         }
-        n.entries.add(new Notification.Entry(notificationEntryType, uriAndHash.uri, uriAndHash.hash, serial));
+        n.entries.add(new Notification.Entry(notificationEntryType, uriHashLength.uri, uriHashLength.hash, serial, cfg.lengthOfContent ? uriHashLength.length : null));
 
         persistNotification.accept(
                 "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\""+serial+"\" session_id=\""+session+"\">\n");
         for (Notification.Entry entry : n.entries) {
             if (entry.type== NotificationEntryType.SNAPSHOT) {
                 persistNotification.accept(
-                        " <snapshot uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"/>\n");
+                        " <snapshot uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"");
             }
             else if (entry.type== NotificationEntryType.DELTA) {
                 persistNotification.accept(
-                        " <delta uri=\""+entry.uri+"\" hash=\""+entry.hash+"\" serial=\""+entry.serial+"\"/>\n");
+                        " <delta uri=\""+entry.uri+"\" hash=\""+entry.hash+"\" serial=\""+entry.serial+"\"");
             }
             else {
                 throw new IllegalStateException("unknown type: " + entry.type);
             }
+            if (cfg.lengthOfContent) {
+                persistNotification.accept(" length=\""+entry.length+"\" ");
+            }
+            persistNotification.accept("/>\n");
         }
         persistNotification.accept("</notification>\n");
     }
@@ -92,11 +99,15 @@ public class Rrdp {
             if (entry.state==EntryState.WITHDRAWAL) {
                 throw new IllegalStateException("Entry " + entry.uri.get() + " can't be WITHDRAWAL while NotificationEntryType is SNAPSHOT.");
             }
-            cfg.persistNotificationEntry.accept(
-                    " <publish uri=\""+entry.uri.get()+"\"");
+            cfg.persistNotificationEntry.accept(" <publish uri=\""+entry.uri.get()+"\"");
             if (!cfg.rfc8182) {
-                cfg.persistNotificationEntry.accept(
-                        " hash=\""+entry.hash.get()+"\"");
+                cfg.persistNotificationEntry.accept(" hash=\""+entry.hash.get()+"\"");
+            }
+            if (cfg.lengthOfContent) {
+                if (entry.length==null) {
+                    throw new IllegalStateException("Entry " + entry.uri.get() + " must provide a length of content.");
+                }
+                cfg.persistNotificationEntry.accept(" length=\""+entry.length.get()+"\"");
             }
             if (cfg.isFileContent) {
                 if (entry.content==null) {

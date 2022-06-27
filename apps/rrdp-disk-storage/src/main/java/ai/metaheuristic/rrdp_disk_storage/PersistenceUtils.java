@@ -80,7 +80,7 @@ public class PersistenceUtils {
     private static void persistContentInternal(String content, Path specificMetadataPath, Supplier<LocalDate> localDateFunc) {
         Path datePath = getDatePath(specificMetadataPath, localDateFunc);
         int maxFileNumber = getCurrMaxFileNumber(datePath);
-        Path actualLatestContentFile = getFilenameForNumber(datePath, maxFileNumber + 1);
+        Path actualLatestContentFile = getFilenameForNumber(datePath, maxFileNumber!=-1 ? maxFileNumber + 1 : 1);
         Files.writeString(actualLatestContentFile, content);
     }
 

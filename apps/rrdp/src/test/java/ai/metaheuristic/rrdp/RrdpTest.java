@@ -31,6 +31,7 @@ public class RrdpTest {
         //noinspection ReturnOfNull
         RrdpConfig cfg = new RrdpConfig()
                 .withRfc8182(false)
+                .withLengthOfContent(true)
                 .withGetSession(()->session)
                 .withCurrentNotification(()->null)
                 .withRrdpEntryIterator(()-> List.of(en1, en2, en3).iterator())
@@ -42,10 +43,11 @@ public class RrdpTest {
         rrdp.produce();
 
         StringWriter notification = new StringWriter();
-        final UriAndHash uriAndHash = new UriAndHash("http://notification-snapshot", DigestUtils.sha256Hex(notificationEntry.toString()));
+        final String notificationEntryStr = notificationEntry.toString();
+        final UriHashLength uriAndHash = new UriHashLength("http://notification-snapshot", DigestUtils.sha256Hex(notificationEntryStr), notificationEntryStr.length());
         rrdp.produceNotification(uriAndHash, notification::write);
 
-        String deltaXml = notificationEntry.toString();
+        String deltaXml = notificationEntryStr;
         String notificationXml = notification.toString();
 
         System.out.println(deltaXml);
@@ -57,7 +59,7 @@ public class RrdpTest {
         verifyNotification(notificationXml, session, uriAndHash);
     }
 
-    private static void verifyNotification(String notificationXml, String session, UriAndHash uriAndHash) {
+    private static void verifyNotification(String notificationXml, String session, UriHashLength uriAndHash) {
         Notification n = RrdpUtils.parseNotificationXml(notificationXml);
 
         assertEquals(session, n.sessionId);
@@ -68,6 +70,8 @@ public class RrdpTest {
 
         assertNull(e1.serial);
         assertEquals(RrdpEnums.NotificationEntryType.SNAPSHOT, e1.type);
+        assertNotNull(e1.length);
+        assertEquals(uriAndHash.length, e1.length);
         assertEquals(uriAndHash.hash, e1.hash);
         assertEquals(uriAndHash.uri, e1.uri);
     }
@@ -117,7 +121,8 @@ public class RrdpTest {
                 .withState(state)
                 .withContent(()-> content)
                 .withUri(()->uri)
-                .withHash(()->DigestUtils.sha256Hex(content));
+                .withHash(()->DigestUtils.sha256Hex(content))
+                .withLength(content::length);
 
         return entry;
     }
