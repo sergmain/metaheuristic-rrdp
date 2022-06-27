@@ -127,7 +127,7 @@ public class FileChecksumProcessor {
         Files.writeString(entryFile, notificationEntryStr);
 
         StringWriter notification = new StringWriter();
-        final String uri = PersistenceUtils.asUri(params.notificationEntryUriPrefix, prefixPath + '/' + MetadataUtils.ENTRY_METADATA_PATH + '/' + entryFilename);
+        final String uri = PersistenceUtils.asUri(params.notificationEntryUriPrefix, prefixPath + '/' + entryFilename);
         rrdp.produceNotification(new UriHashLength(uri, DigestUtils.sha256Hex(notificationEntryStr), notificationEntryStr.length()), notification::write);
 
         NotificationUtils.persistNotification(path, notification.toString(), LocalDate::now);
@@ -136,7 +136,7 @@ public class FileChecksumProcessor {
     public static RrdpEntry toRrdpEntry(ChecksumPath checksumPath, String prefixPath, final ProcessorParams params) {
         RrdpEntry entry= new RrdpEntry()
                 .withState(checksumPath.state)
-                .withUri(()-> PersistenceUtils.asUri(params.notificationEntryUriPrefix, prefixPath + '/' + checksumPath.path))
+                .withUri(()-> PersistenceUtils.asUri(params.entryUriPrefix, prefixPath + '/' + checksumPath.path))
                 .withHash(()->checksumPath.sha1)
                 .withLength(()->(int)checksumPath.size);
 

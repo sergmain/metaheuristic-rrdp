@@ -17,13 +17,13 @@ public class WalkerTest {
 
     @Disabled("Not actual test")
     @Test
-    public void process() throws IOException {
+    public void process() {
 //        final String startPoint = "D:\\test-files-edition\\edition\\stat2";
         final String startPoint = "D:\\test-files-edition";
         final Path actualDataPath = Path.of(startPoint);
         final Path metadataPath = PersistenceUtils.resolveSubPath(Path.of("result"), "metadata");
 
-        final ProcessorParams p = new ProcessorParams("http://localhost:8080/data-sync/", "http://localhost:8080/data-sync");
+        final ProcessorParams p = new ProcessorParams("/rest/v1/replication/data/", "/rest/v1/replication/entry/");
         processPath(metadataPath, actualDataPath, p);
     }
 
