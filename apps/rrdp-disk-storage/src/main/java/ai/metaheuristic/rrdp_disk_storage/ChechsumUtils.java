@@ -22,28 +22,16 @@ public class ChechsumUtils {
 
     private static Boolean verifyAsInteger(@Nullable String s) {
         return true;
-/*
-        if (s==null) {
-            return true;
-        }
-        try {
-            //noinspection unused
-            int serial = Integer.parseInt(s);
-            return true;
-        }
-        catch (IllegalArgumentException e) {
-            //
-        }
-        return false;
-*/
     }
 
+    @Nullable
     @SneakyThrows
     public static String persistChecksum(Path checksumPath, String json, Supplier<LocalDate> localDateFunc ) {
         return PersistenceUtils.persistContent(
                 checksumPath, ()->json, (s)->true, localDateFunc);
     }
 
+    @Nullable
     @SneakyThrows
     public static Path getChecksumFile(Path checksumPath) {
         return PersistenceUtils.getLatestContentFile(checksumPath, null);

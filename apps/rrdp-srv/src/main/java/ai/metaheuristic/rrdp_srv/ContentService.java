@@ -1,17 +1,13 @@
 package ai.metaheuristic.rrdp_srv;
 
-import ai.metaheuristic.rrdp.RrdpEnums;
-import ai.metaheuristic.rrdp_disk_storage.ChecksumPath;
-import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
+import ai.metaheuristic.rrdp_disk_storage.MetadataUtils;
 import ai.metaheuristic.rrdp_disk_storage.NotificationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
+import javax.annotation.Nullable;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
@@ -27,7 +23,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class NotificationService {
+public class ContentService {
 
     private final Globals globals;
 
@@ -37,7 +33,38 @@ public class NotificationService {
 
     private final Map<String, String> notificationContents = new HashMap<>();
 
-    public String getContent(String dataCode) {
+    @SneakyThrows
+    @Nullable
+    public String getEntryContent(String dataCode, String entryFilename) {
+        Path metadataPath = globals.path.metadata.path.resolve(dataCode);
+        if (Files.notExists(metadataPath)) {
+            return null;
+        }
+        Path entryPath = MetadataUtils.getEntryPath(metadataPath);
+        Path entryFile = entryPath.resolve(entryFilename);
+        if (Files.notExists(entryFile)) {
+            return null;
+        }
+        final String entryStr = Files.readString(entryFile);
+        return entryStr;
+    }
+
+    @Nullable
+    @SneakyThrows
+    public Path getDataContentPath(String dataUri) {
+        Path dataPath = globals.path.source.path.resolve(dataUri);
+        if (Files.notExists(dataPath)) {
+            return null;
+        }
+        Path normalizedDataPath = dataPath.normalize();
+        if (!normalizedDataPath.startsWith(dataPath)) {
+            log.warn("Data uri "+ dataUri+" doesn't point to source path");
+            return null;
+        }
+        return normalizedDataPath;
+    }
+
+    public String getNotificationContent(String dataCode) {
         try {
             readLock.lock();
             return notificationContents.get(dataCode);
@@ -47,12 +74,12 @@ public class NotificationService {
     }
 
     @SneakyThrows
-    public void refresh() {
-        Files.walkFileTree(globals.metadata.path.path, EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<>() {
+    public void refreshNotificationContents() {
+        Files.walkFileTree(globals.path.metadata.path, EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path p, BasicFileAttributes attrs) {
                 if (!Files.isDirectory(p)) {
-                    log.warn("Path "+globals.metadata.path.path+" must contain only dirs, "+p+" is file actually");
+                    log.warn("Path "+globals.path.metadata.path+" must contain only dirs, "+p+" is file actually");
                     return FileVisitResult.CONTINUE;
                 }
                 final String dataCode = p.getFileName().toString();

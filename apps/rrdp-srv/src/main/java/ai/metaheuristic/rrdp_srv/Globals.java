@@ -34,23 +34,24 @@ public class Globals {
 
     @Component
     @ConfigurationPropertiesBinding
-    public static class MetadataPathConverter implements Converter<String, MetadataPath> {
+    public static class MetadataPathConverter implements Converter<String, PathPath> {
         @Override
-        public MetadataPath convert(String from) {
-            return new MetadataPath(toPath(from));
+        public PathPath convert(String from) {
+            return new PathPath(toPath(from));
         }
     }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class MetadataPath {
+    public static class PathPath {
         public Path path = null;
     }
 
     @Setter
-    public static class Metadata {
-        public MetadataPath path = new MetadataPath();
+    public static class RrdpPath {
+        public PathPath metadata = new PathPath();
+        public PathPath source = new PathPath();
     }
 
     @Setter
@@ -73,7 +74,7 @@ public class Globals {
         }
     }
 
-    public final Metadata metadata = new Metadata();
+    public final RrdpPath path = new RrdpPath();
     public final Timeout timeout = new Timeout();
     public final ThreadNumber threadNumber = new ThreadNumber();
 
@@ -82,8 +83,11 @@ public class Globals {
     @SneakyThrows
     @PostConstruct
     public void postConstruct() {
-        if (metadata.path==null || metadata.path.path ==null) {
+        if (path.metadata==null || path.metadata.path ==null) {
             throw new IllegalStateException("(metadata.path==null || metadata.path.path ==null)");
+        }
+        if (path.source==null || path.source.path ==null) {
+            throw new IllegalStateException("(path.source==null || path.source.path ==null)");
         }
         logGlobals();
         logSystemEnvs();
@@ -131,7 +135,8 @@ public class Globals {
         log.info("Current globals:");
         log.info("'\ttesting: {}", testing);
         log.info("'\tthreadNumber.scheduler: {}", threadNumber.getScheduler());
-        log.info("'\tmetadata.path: {}", metadata.path.path !=null ? metadata.path.path : "<metadata path is null>");
+        log.info("'\tpath.metadata: {}", path.metadata.path !=null ? path.metadata.path : "<!!!ERROR!!! path.metadata is null>");
+        log.info("'\tpath.source: {}", path.source.path !=null ? path.source.path : "<!!!ERROR!!! path.source is null>");
     }
 
     private static void logGarbageCollectors() {

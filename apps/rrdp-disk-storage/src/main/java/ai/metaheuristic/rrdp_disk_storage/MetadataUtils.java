@@ -14,23 +14,23 @@ public class MetadataUtils {
     public static final String ENTRY_METADATA_PATH = "entry";
     private static final String CHECKSUM_METADATA_PATH = "checksum";
 
-    static Path getSerialPath(Path metadataPath) {
+    public static Path getSerialPath(Path metadataPath) {
         return PersistenceUtils.resolveSubPath(metadataPath, SERIAL_METADATA_PATH);
     }
 
-    static Path getSessionPath(Path metadataPath) {
+    public static Path getSessionPath(Path metadataPath) {
         return PersistenceUtils.resolveSubPath(metadataPath, SESSION_METADATA_PATH);
     }
 
-    static Path getNotificationPath(Path metadataPath) {
+    public static Path getNotificationPath(Path metadataPath) {
         return PersistenceUtils.resolveSubPath(metadataPath, NOTIFICATION_METADATA_PATH);
     }
 
-    static Path getEntryPath(Path metadataPath) {
+    public static Path getEntryPath(Path metadataPath) {
         return PersistenceUtils.resolveSubPath(metadataPath, ENTRY_METADATA_PATH);
     }
 
-    static Path getChecksumPath(Path metadataPath) {
+    public static Path getChecksumPath(Path metadataPath) {
         return PersistenceUtils.resolveSubPath(metadataPath, CHECKSUM_METADATA_PATH);
     }
 }

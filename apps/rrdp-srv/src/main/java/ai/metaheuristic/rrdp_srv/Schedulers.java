@@ -3,7 +3,6 @@ package ai.metaheuristic.rrdp_srv;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
@@ -26,7 +25,7 @@ public class Schedulers {
     @Slf4j
     public static class NotificationContentRefresherSchedulingConfig implements SchedulingConfigurer {
         private final Globals globals;
-        private final NotificationService notificationService;
+        private final ContentService notificationService;
 
         @Override
         public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
@@ -45,7 +44,7 @@ public class Schedulers {
                 return;
             }
             log.info("Invoking artifactCleanerAtDispatcher.fixedDelay()");
-            notificationService.refresh();
+            notificationService.refreshNotificationContents();
         }
     }
 
