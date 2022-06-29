@@ -154,6 +154,7 @@ public class FileChecksumProcessor {
     public static Map<String, ChecksumPath> loadChecksumPath(Path dataPath, Map<String, ChecksumPath> calculatedMap) throws IOException {
         final AtomicInteger count = new AtomicInteger();
         final Map<String, ChecksumPath> map = new HashMap<>(10000);
+        final Set<String> processed = new HashSet<>(10000);
         Files.walkFileTree(dataPath, new SimpleFileVisitor<>() {
             @SuppressWarnings("ConstantConditions")
             @Override
@@ -172,11 +173,18 @@ public class FileChecksumProcessor {
                     cs.state = differenceType==DifferenceType.new_one ? RrdpEnums.EntryState.PUBLISH : RrdpEnums.EntryState.UPDATE;
                     map.put(relativeName, cs);
                 }
+                processed.add(relativeName);
 
                 count.incrementAndGet();
                 return FileVisitResult.CONTINUE;
             }
         });
+
+        for (Map.Entry<String, ChecksumPath> en : calculatedMap.entrySet()) {
+            if (en.getValue().state!= RrdpEnums.EntryState.WITHDRAWAL && !processed.contains(en.getKey())) {
+                map.put(en.getKey(), new ChecksumPath(en.getValue(), RrdpEnums.EntryState.WITHDRAWAL));
+            }
+        }
 
         System.out.println(""+dataPath+", total: " + count + ", different: " + map.size());
         return map;

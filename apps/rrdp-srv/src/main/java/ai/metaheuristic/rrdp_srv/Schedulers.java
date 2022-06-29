@@ -3,9 +3,12 @@ package ai.metaheuristic.rrdp_srv;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Date;
@@ -83,5 +86,25 @@ public class Schedulers {
         }
     }
 
+    @Service
+    @EnableScheduling
+    @Slf4j
+    @RequiredArgsConstructor
+    public static class ProcessorSchedulers {
 
+        private final Globals globals;
+        private final DataVerificationService dataVerificationService;
+
+        // this scheduler is being run at the processor side
+
+        // run every 12 hours
+        @Scheduled(initialDelay = 30_000, fixedDelay = 12*3600*1000)
+        public void keepAlive() {
+            if (globals.testing) {
+                return;
+            }
+            log.info("call dataVerificationService.processVerificationTask()");
+            dataVerificationService.processVerificationTask();
+        }
+    }
 }

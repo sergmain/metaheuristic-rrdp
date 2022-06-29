@@ -20,7 +20,7 @@ import java.util.List;
  * Date: 6/27/2022
  * Time: 12:14 AM
  */
-@ConfigurationProperties("rrdp")
+@ConfigurationProperties("rrdp.client")
 @Getter
 @Setter
 @Slf4j

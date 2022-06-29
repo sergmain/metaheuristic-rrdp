@@ -23,7 +23,7 @@ import java.util.List;
  * Date: 6/27/2022
  * Time: 12:14 AM
  */
-@ConfigurationProperties("rrdp")
+@ConfigurationProperties("rrdp.server")
 @Getter
 @Setter
 @Slf4j
@@ -65,11 +65,11 @@ public class Globals {
 
 
         public Duration getNotificationRefresh() {
-            return notificationRefresh.toSeconds() >= 120 && notificationRefresh.toSeconds() <= 3600 ? notificationRefresh : SECONDS_120;
+            return notificationRefresh.toSeconds() >= 10 && notificationRefresh.toSeconds() <= 3600 ? notificationRefresh : SECONDS_120;
         }
 
         public Duration getCodesRefresh() {
-            return codesRefresh.toSeconds() >= 60 && codesRefresh.toSeconds() <= 600 ? codesRefresh : SECONDS_60;
+            return codesRefresh.toSeconds() >= 10 && codesRefresh.toSeconds() <= 600 ? codesRefresh : SECONDS_60;
         }
     }
 

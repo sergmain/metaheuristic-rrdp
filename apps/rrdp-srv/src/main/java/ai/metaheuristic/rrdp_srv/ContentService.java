@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_srv;
 
+import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
 import ai.metaheuristic.rrdp_disk_storage.MetadataUtils;
 import ai.metaheuristic.rrdp_disk_storage.NotificationUtils;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor.processPath;
 
 /**
  * @author Sergio Lissner

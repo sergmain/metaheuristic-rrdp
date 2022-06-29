@@ -6,7 +6,7 @@
 
     <groupId>ai.metaheuristic</groupId>
     <artifactId>rrdp</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 
     <packaging>jar</packaging>
 

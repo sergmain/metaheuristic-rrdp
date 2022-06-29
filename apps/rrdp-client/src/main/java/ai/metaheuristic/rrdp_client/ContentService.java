@@ -5,7 +5,6 @@ import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
 import ai.metaheuristic.rrdp_disk_storage.PersistenceUtils;
 import ai.metaheuristic.rrdp_disk_storage.SerialUtils;
 import ai.metaheuristic.rrdp_disk_storage.SessionUtils;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -28,11 +27,10 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static ai.metaheuristic.rrdp.RrdpEnums.*;
 import static java.nio.file.StandardOpenOption.*;
@@ -65,25 +63,20 @@ public class ContentService {
             Path metadataPath = PersistenceUtils.resolveSubPath(globals.path.metadata.path, code);
 
             String session = SessionUtils.getSession(metadataPath);
-//            if (session==null) {
-//                session = UUID.randomUUID().toString();
-//                SessionUtils.persistSession(metadataPath, session, LocalDate::now);
-//            }
-//            SerialUtils.persistSerial(metadataPath, serial, LocalDate::now);
             Integer serial = SerialUtils.getSerial(metadataPath);
             if (serial==null) {
                 serial = 0;
             }
-            else if (!n.sessionId.equals(session)) {
+            if (!n.sessionId.equals(session)) {
+                SessionUtils.persistSession(metadataPath, n.sessionId, LocalDate::now);
                 serial = 0;
             }
 
-            processSerials(code, serial, n);
-
+            processSerials(metadataPath, serial, n);
         }
     }
 
-    private void processSerials(String code, int serial, RrdpNotificationXml n) {
+    private void processSerials(Path metadataPath, int serial, RrdpNotificationXml n) {
         List<RrdpNotificationXml.Entry> sorted = RrdpCommonUtils.sortNotificationXmlEntries(n);
         for (RrdpNotificationXml.Entry entry : sorted) {
             int actualSerial = 0;
@@ -97,9 +90,11 @@ public class ContentService {
                 actualSerial = 1;
             }
             if (actualSerial<=serial) {
+                System.out.println("serial #"+actualSerial+" was already processed");
                 continue;
             }
             processNotificationEntry(actualSerial, n.sessionId, entry);
+            SerialUtils.persistSerial(metadataPath, actualSerial, LocalDate::now);
         }
     }
 
@@ -122,13 +117,18 @@ public class ContentService {
         for (RrdpEntryXml.Entry en : entryXml.entries) {
             Path path = entryXmlUriToPath(en);
             System.out.print(""+entryXml.entries.size()+':'+ (curr++) + " "+ path+", length: " + en.length+ " ");
-            if (en.state== EntryState.WITHDRAWAL && Files.exists(path)) {
-                String hash = FileChecksumProcessor.calcSha1(path);
-                if (!en.hash.equals(hash)) {
-                    throw new IllegalStateException("(!en.hash.equals(hash))");
+            if (en.state==EntryState.WITHDRAWAL) {
+                if (Files.exists(path)) {
+                    String hash = FileChecksumProcessor.calcSha1(path);
+                    if (!en.hash.equals(hash)) {
+                        System.out.print(" !!! HASH IS DIFFERENT !!! ");
+                    }
+                    System.out.println("EXIST, WITHDRAWAL");
+                    Files.delete(path);
                 }
-                System.out.println("WITHDRAWAL");
-                Files.delete(path);
+                else {
+                    System.out.println("NOT EXIST, WITHDRAWAL");
+                }
             }
             else if (en.state == EntryState.PUBLISH) {
                 if (Files.exists(path)) {
@@ -136,7 +136,7 @@ public class ContentService {
                     if (!en.hash.equals(hash)) {
                         throw new IllegalStateException("(!en.hash.equals(hash))");
                     }
-                    System.out.println("EXIST, SKIP");
+                    System.out.println("EXIST, SAME");
                 }
                 else {
                     Files.createDirectories(path.getParent());
