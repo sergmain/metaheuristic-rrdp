@@ -3,7 +3,6 @@ package ai.metaheuristic.rrdp_srv;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
@@ -104,6 +103,7 @@ public class Schedulers {
                 return;
             }
             log.info("call dataVerificationService.processVerificationTask()");
+            dataVerificationService.addVerificationTask();
             dataVerificationService.processVerificationTask();
         }
     }
