@@ -94,8 +94,6 @@ public class Schedulers {
         private final Globals globals;
         private final DataVerificationService dataVerificationService;
 
-        // this scheduler is being run at the processor side
-
         // run every 12 hours
         @Scheduled(initialDelay = 30_000, fixedDelay = 12*3600*1000)
         public void keepAlive() {

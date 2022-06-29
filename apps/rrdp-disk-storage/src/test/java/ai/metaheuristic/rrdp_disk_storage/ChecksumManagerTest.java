@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -13,8 +14,9 @@ import java.util.Map;
  */
 public class ChecksumManagerTest {
 
+    @Disabled
     @Test
-    public void test() throws IOException {
+    public void test() {
         final Path metadataPath = PersistenceUtils.resolveSubPath(Path.of("result"), "metadata");
         final Path editionPath = PersistenceUtils.resolveSubPath(metadataPath, "edition");
 
