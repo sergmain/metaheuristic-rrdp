@@ -17,7 +17,6 @@ public class Rrdp {
     public String session;
     public int serial;
     public NotificationEntryType notificationEntryType;
-    public boolean newEntries = false;
 
     public Rrdp(RrdpConfig cfg) {
         this.cfg = cfg;
@@ -50,7 +49,7 @@ public class Rrdp {
     }
 
     public void produceNotification(UriHashLength uriHashLength, Consumer<String> persistNotification) {
-        Notification n;
+        RrdpNotificationXml n;
         if (serial>1) {
             n = cfg.currentNotification.get();
             if (!n.sessionId.equals(session)) {
@@ -61,13 +60,13 @@ public class Rrdp {
             }
         }
         else {
-            n = new Notification(session, serial);
+            n = new RrdpNotificationXml(session, serial);
         }
-        n.entries.add(new Notification.Entry(notificationEntryType, uriHashLength.uri, uriHashLength.hash, serial, cfg.lengthOfContent ? uriHashLength.length : null));
+        n.entries.add(new RrdpNotificationXml.Entry(notificationEntryType, uriHashLength.uri, uriHashLength.hash, serial, cfg.lengthOfContent ? uriHashLength.length : null));
 
         persistNotification.accept(
                 "<notification xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\""+serial+"\" session_id=\""+session+"\">\n");
-        for (Notification.Entry entry : n.entries) {
+        for (RrdpNotificationXml.Entry entry : n.entries) {
             if (entry.type== NotificationEntryType.SNAPSHOT) {
                 persistNotification.accept(
                         " <snapshot uri=\""+entry.uri+"\" hash=\""+entry.hash+"\"");
@@ -90,9 +89,9 @@ public class Rrdp {
     private void produceSnapshot(String session) {
         cfg.persistNotificationEntry.accept(
                 "<snapshot xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\"1\" session_id=\""+session+"\">\n");
-        Iterator<RrdpEntry> it = cfg.rrdpEntryIterator.get();
+        Iterator<RrdpEntryProvider> it = cfg.rrdpEntryIterator.get();
         while (it.hasNext()) {
-            RrdpEntry entry = it.next();
+            RrdpEntryProvider entry = it.next();
             if (cfg.rfc8182 && !entry.state.rfc8182) {
                 throw new IllegalStateException("Entry " + entry.uri.get() + " must be rfc8192 compatible.");
             }
@@ -125,13 +124,13 @@ public class Rrdp {
     private void produceDelta(String session, int serial) {
         cfg.persistNotificationEntry.accept(
                 "<delta xmlns=\"http://www.ripe.net/rpki/rrdp\" version=\"1\" serial=\""+serial+"\" session_id=\""+session+"\">\n");
-        Iterator<RrdpEntry> it = cfg.rrdpEntryIterator.get();
+        Iterator<RrdpEntryProvider> it = cfg.rrdpEntryIterator.get();
         while (it.hasNext()) {
-            RrdpEntry entry = it.next();
+            RrdpEntryProvider entry = it.next();
             if (cfg.rfc8182 && !entry.state.rfc8182) {
                 throw new IllegalStateException("Entry " + entry.uri.get() + " must be rfc8192 compatible.");
             }
-            if (entry.state== EntryState.PUBLISHED ||entry.state== EntryState.UPDATED) {
+            if (entry.state== EntryState.PUBLISH ||entry.state== EntryState.UPDATE) {
                 cfg.persistNotificationEntry.accept(
                         " <publish uri=\""+entry.uri.get()+"\" hash=\""+entry.hash.get()+"\"");
 

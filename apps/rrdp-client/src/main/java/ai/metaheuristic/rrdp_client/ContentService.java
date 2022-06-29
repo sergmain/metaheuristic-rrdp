@@ -1,8 +1,14 @@
 package ai.metaheuristic.rrdp_client;
 
+import ai.metaheuristic.rrdp.*;
+import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
+import ai.metaheuristic.rrdp_disk_storage.PersistenceUtils;
+import ai.metaheuristic.rrdp_disk_storage.SerialUtils;
+import ai.metaheuristic.rrdp_disk_storage.SessionUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -14,11 +20,18 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Sergio Lissner
@@ -30,6 +43,7 @@ import java.util.function.Function;
 @Slf4j
 public class ContentService {
 
+    public static final String REST_V_1_REPLICATION_DATA = "/rest/v1/replication/data/";
     private final Globals globals;
 
     public void process() {
@@ -37,33 +51,158 @@ public class ContentService {
         for (String code : codes) {
             System.out.println("code = " + code);
             String notification = requestNotification(code);
+            if (notification==null) {
+                System.out.println("Notification for code '" + code+"' is null");
+                continue;
+            }
             System.out.println("notification:\n"+ notification);
+            RrdpNotificationXml n = RrdpNotificationXmlUtils.parseNotificationXml(notification);
+
+            Path metadataPath = PersistenceUtils.resolveSubPath(globals.path.metadata.path, code);
+
+            String session = SessionUtils.getSession(metadataPath);
+//            if (session==null) {
+//                session = UUID.randomUUID().toString();
+//                SessionUtils.persistSession(metadataPath, session, LocalDate::now);
+//            }
+//            SerialUtils.persistSerial(metadataPath, serial, LocalDate::now);
+            Integer serial = SerialUtils.getSerial(metadataPath);
+            if (serial==null) {
+                serial = 0;
+            }
+            else if (!n.sessionId.equals(session)) {
+                serial = 0;
+            }
+
+            processSerials(code, serial, n);
+
+        }
+    }
+
+    private void processSerials(String code, int serial, RrdpNotificationXml n) {
+        List<RrdpNotificationXml.Entry> sorted = n.entries.stream().sorted(Comparator.comparingInt(o -> o.serial)).collect(Collectors.toList());
+        for (RrdpNotificationXml.Entry entry : sorted) {
+            if (entry.serial==null) {
+                throw new IllegalStateException("(entry.serial==null)");
+            }
+            if (entry.serial<=serial) {
+                continue;
+            }
+            processNotificationEntry(n.sessionId, entry);
+        }
+    }
+
+    @SneakyThrows
+    private void processNotificationEntry(String sessionId, RrdpNotificationXml.Entry entry) {
+        String content = requestEntry(entry.uri);
+        if (content==null) {
+            throw new IllegalStateException("Notification is broken, entry wasn't found on server, entry: " + entry.uri);
+        }
+        verifyChecksum(entry, content);
+        RrdpEntryXml entryXml = RrdpEntryXmlUtils.parseRrdpEntryXml(content);
+        if (!sessionId.equals(entryXml.sessionId)) {
+            throw new IllegalStateException("(!sessionId.equals(entryXml.sessionId))");
+        }
+        if (entry.serial!=entryXml.serial) {
+            throw new IllegalStateException("(entry.serial!=entryXml.serial)");
+        }
+        for (RrdpEntryXml.Entry en : entryXml.entries) {
+            Path path = entryXmlUriToPath(en);
+            if (en.state== RrdpEnums.EntryState.WITHDRAWAL && Files.exists(path)) {
+                String hash = FileChecksumProcessor.calcSha1(path);
+                if (!en.hash.equals(hash)) {
+                    throw new IllegalStateException("(!en.hash.equals(hash))");
+                }
+                Files.delete(path);
+            }
+            else if (en.state == RrdpEnums.EntryState.PUBLISH) {
+                if (Files.exists(path)) {
+                    String hash = FileChecksumProcessor.calcSha1(path);
+                    if (!en.hash.equals(hash)) {
+                        throw new IllegalStateException("(!en.hash.equals(hash))");
+                    }
+                }
+                else {
+                    downloadAndPersistEntry(path, en);
+                }
+            }
+        }
+    }
+
+    private void downloadAndPersistEntry(Path path, RrdpEntryXml.Entry en) {
+        getData(
+                "/rest/v1/replication/entry/" + en.uri,
+                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
+                is -> {
+                    try (OutputStream os = Files.newOutputStream(path)) {
+                        IOUtils.copy(is, os, 8196);
+                    }
+                    catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } );
+    }
+
+    private Path entryXmlUriToPath(RrdpEntryXml.Entry en) {
+        int idx = en.uri.indexOf(REST_V_1_REPLICATION_DATA);
+        if (idx==-1) {
+            throw new IllegalStateException("(idx==-1)");
+        }
+        String uri = en.uri.substring(idx+REST_V_1_REPLICATION_DATA.length());
+        final Path path = globals.path.data.path.resolve(uri);
+        return path;
+    }
+
+    private void verifyChecksum(RrdpNotificationXml.Entry entry, String content) {
+        String actualHash = DigestUtils.sha256Hex(content);
+        if (!entry.hash.equals(actualHash)) {
+            throw new RuntimeException("Hashes are different, expected: " + entry.hash+", actual: " + actualHash);
         }
     }
 
     @Nullable
     @SneakyThrows
     public String requestNotification(String dataCode) {
-        String content = getData(
+        final StringBuilder content = new StringBuilder();
+        getData(
                 "/rest/v1/replication/" + dataCode + "/notification.xml",
-                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000));
-        return content;
+                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
+                is -> content.append(asString(is)) );
+
+        return content.toString();
+    }
+
+    // http://localhost:8080/rest/v1/replication/entry/edition/000001.xml
+    @Nullable
+    @SneakyThrows
+    public String requestEntry(String entryUri) {
+        final StringBuilder content = new StringBuilder();
+        getData(entryUri, (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000), is -> content.append(asString(is)));
+        return content.toString();
     }
 
     @SneakyThrows
     public List<String> requestCodes() {
-        String content = getData(
-                "/rest/v1/replication/codes", (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000));
-        if (content == null) {
+        final StringBuilder content = new StringBuilder();
+        getData(
+                "/rest/v1/replication/codes",
+                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
+                is -> content.append(asString(is)));
+        final String s = content.toString();
+        if (s.isBlank()) {
             return List.of();
         }
-        List<String> codes = JsonUtils.getMapper().readValue(content, List.class);
+        List<String> codes = JsonUtils.getMapper().readValue(s, List.class);
         return codes;
     }
 
     @SneakyThrows
-    @Nullable
-    public String getData(String uri, Function<URI, Request> requestFunc) {
+    public static String asString(InputStream is) {
+        return IOUtils.toString(is, StandardCharsets.UTF_8);
+    }
+
+    @SneakyThrows
+    public void getData(String uri, Function<URI, Request> requestFunc, Consumer<InputStream> inputStreamConsumer) {
         final String url = globals.asset.url + uri;
 
         final URIBuilder builder = new URIBuilder(url).setCharset(StandardCharsets.UTF_8);
@@ -86,11 +225,8 @@ public class ContentService {
         final HttpEntity entity = httpResponse.getEntity();
         if (entity != null) {
             try (final InputStream inputStream = entity.getContent()) {
-                return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+                inputStreamConsumer.accept(inputStream);
             }
-        }
-        else {
-            return null;
         }
     }
 

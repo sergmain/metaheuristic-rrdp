@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 @AllArgsConstructor
 @NoArgsConstructor
 @With
-public class RrdpEntry {
+public class RrdpEntryProvider {
 
     public RrdpEnums.EntryState state;
 

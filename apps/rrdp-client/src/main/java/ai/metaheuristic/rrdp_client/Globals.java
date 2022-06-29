@@ -1,16 +1,18 @@
 package ai.metaheuristic.rrdp_client;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.SneakyThrows;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBinding;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -24,6 +26,28 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class Globals {
+
+    @Component
+    @ConfigurationPropertiesBinding
+    public static class MetadataPathConverter implements Converter<String, PathPath> {
+        @Override
+        public PathPath convert(String from) {
+            return new PathPath(toPath(from));
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PathPath {
+        public Path path = null;
+    }
+
+    @Setter
+    public static class RrdpPath {
+        public PathPath metadata = new PathPath();
+        public PathPath data = new PathPath();
+    }
 
     @Setter
     public static class Asset {
@@ -39,6 +63,7 @@ public class Globals {
         }
     }
 
+    public final RrdpPath path = new RrdpPath();
     public final Asset asset = new Asset();
     public final ThreadNumber threadNumber = new ThreadNumber();
 
@@ -53,6 +78,19 @@ public class Globals {
         logGlobals();
         logSystemEnvs();
         logGarbageCollectors();
+    }
+
+    @Nullable
+    private static Path toPath(@Nullable String dirAsString) {
+        if (dirAsString==null || dirAsString.isBlank()) {
+            return null;
+        }
+
+        // special case for ./some-dir
+        if (dirAsString.charAt(0) == '.' && (dirAsString.charAt(1) == '\\' || dirAsString.charAt(1) == '/')) {
+            return Path.of(dirAsString.substring(2));
+        }
+        return Path.of(dirAsString);
     }
 
     public static int minMax(int curr, int min, int max) {

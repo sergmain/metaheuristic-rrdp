@@ -14,20 +14,20 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * Date: 6/2/2022
  * Time: 10:41 AM
  */
-public class RrdpUtilsTest {
+public class RrdpNotificationXmlUtilsTest {
 
     @Test
     public void testParse() throws IOException {
         String xml = IOUtils.resourceToString("/notification-01.xml", StandardCharsets.UTF_8);
-        Notification n = RrdpUtils.parseNotificationXml(xml);
+        RrdpNotificationXml n = RrdpNotificationXmlUtils.parseNotificationXml(xml);
 
         assertEquals("9df4b597-af9e-4dca-bdda-719cce2c4e28", n.sessionId);
         assertEquals(3, n.serial);
         assertEquals(3, n.entries.size());
 
-        Notification.Entry e1 = n.entries.stream().filter(o->o.serial==null).findFirst().orElseThrow();
-        Notification.Entry e2 = n.entries.stream().filter(o->Integer.valueOf(2).equals(o.serial)).findFirst().orElseThrow();
-        Notification.Entry e3 = n.entries.stream().filter(o->Integer.valueOf(3).equals(o.serial)).findFirst().orElseThrow();
+        RrdpNotificationXml.Entry e1 = n.entries.stream().filter(o->o.serial==null).findFirst().orElseThrow();
+        RrdpNotificationXml.Entry e2 = n.entries.stream().filter(o->Integer.valueOf(2).equals(o.serial)).findFirst().orElseThrow();
+        RrdpNotificationXml.Entry e3 = n.entries.stream().filter(o->Integer.valueOf(3).equals(o.serial)).findFirst().orElseThrow();
 
         assertNull(e1.serial);
         assertEquals(RrdpEnums.NotificationEntryType.SNAPSHOT, e1.type);

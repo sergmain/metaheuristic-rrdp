@@ -14,7 +14,7 @@ import java.util.List;
  */
 @AllArgsConstructor
 @NoArgsConstructor
-public class Notification {
+public class RrdpNotificationXml {
 
     @AllArgsConstructor
     @NoArgsConstructor

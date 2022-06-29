@@ -23,9 +23,9 @@ public class RrdpTest {
 
         StringWriter notificationEntry = new StringWriter();
 
-        RrdpEntry en1 = publishEntry("entry #1", "http://uri1");
-        RrdpEntry en2 = publishEntry("entry #2", "http://uri2");
-        RrdpEntry en3 = publishEntry("entry #3", "http://uri3");
+        RrdpEntryProvider en1 = publishEntry("entry #1", "http://uri1");
+        RrdpEntryProvider en2 = publishEntry("entry #2", "http://uri2");
+        RrdpEntryProvider en3 = publishEntry("entry #3", "http://uri3");
 
 
         //noinspection ReturnOfNull
@@ -60,13 +60,13 @@ public class RrdpTest {
     }
 
     private static void verifyNotification(String notificationXml, String session, UriHashLength uriAndHash) {
-        Notification n = RrdpUtils.parseNotificationXml(notificationXml);
+        RrdpNotificationXml n = RrdpNotificationXmlUtils.parseNotificationXml(notificationXml);
 
         assertEquals(session, n.sessionId);
         assertEquals(1, n.serial);
         assertEquals(1, n.entries.size());
 
-        Notification.Entry e1 = n.entries.stream().filter(o->o.serial==null).findFirst().orElseThrow();
+        RrdpNotificationXml.Entry e1 = n.entries.stream().filter(o->o.serial==null).findFirst().orElseThrow();
 
         assertNull(e1.serial);
         assertEquals(RrdpEnums.NotificationEntryType.SNAPSHOT, e1.type);
@@ -83,10 +83,10 @@ public class RrdpTest {
 
         StringWriter notificationEntry = new StringWriter();
 
-        RrdpEntry en1 = publishEntry("entry #1", "http://uri1");
-        RrdpEntry en2 = publishEntry("entry #2", "http://uri2");
-        RrdpEntry en3 = publishEntry("entry #3", "http://uri3");
-        RrdpEntry en4 = withdrawEntry("entry #4", "http://uri4");
+        RrdpEntryProvider en1 = publishEntry("entry #1", "http://uri1");
+        RrdpEntryProvider en2 = publishEntry("entry #2", "http://uri2");
+        RrdpEntryProvider en3 = publishEntry("entry #3", "http://uri3");
+        RrdpEntryProvider en4 = withdrawEntry("entry #4", "http://uri4");
 
         //noinspection ReturnOfNull
         RrdpConfig cfg = new RrdpConfig()
@@ -108,16 +108,16 @@ public class RrdpTest {
         assertNotEquals(0, notificationEntryXml.length());
     }
 
-    private static RrdpEntry publishEntry(String content, String uri) {
-        return createEntry(content, uri, RrdpEnums.EntryState.PUBLISHED);
+    private static RrdpEntryProvider publishEntry(String content, String uri) {
+        return createEntry(content, uri, RrdpEnums.EntryState.PUBLISH);
     }
 
-    private static RrdpEntry withdrawEntry(String content, String uri) {
+    private static RrdpEntryProvider withdrawEntry(String content, String uri) {
         return createEntry(content, uri, RrdpEnums.EntryState.WITHDRAWAL);
     }
 
-    private static RrdpEntry createEntry(String content, String uri, RrdpEnums.EntryState state) {
-        RrdpEntry entry= new RrdpEntry()
+    private static RrdpEntryProvider createEntry(String content, String uri, RrdpEnums.EntryState state) {
+        RrdpEntryProvider entry= new RrdpEntryProvider()
                 .withState(state)
                 .withContent(()-> content)
                 .withUri(()->uri)

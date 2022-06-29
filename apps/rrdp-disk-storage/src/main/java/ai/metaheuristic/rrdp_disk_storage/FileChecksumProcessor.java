@@ -71,9 +71,9 @@ public class FileChecksumProcessor {
         }
 
         String notificationXml = NotificationUtils.getNotification(path);
-        final Notification n = notificationXml == null
-                ? new Notification()
-                : RrdpUtils.parseNotificationXml(notificationXml);
+        final RrdpNotificationXml n = notificationXml == null
+                ? new RrdpNotificationXml()
+                : RrdpNotificationXmlUtils.parseNotificationXml(notificationXml);
 
         Map<String, ChecksumPath> diff = FileChecksumProcessor.process(path, actualDataPath);
 //        diff.forEach( (k, v) -> System.out.println(v));
@@ -89,13 +89,13 @@ public class FileChecksumProcessor {
 
         Iterator<ChecksumPath> iter = diff.values().iterator();
 
-        Iterator<RrdpEntry> it = new Iterator<>() {
+        Iterator<RrdpEntryProvider> it = new Iterator<>() {
             @Override
             public boolean hasNext() {
                 return iter.hasNext();
             }
             @Override
-            public RrdpEntry next() {
+            public RrdpEntryProvider next() {
                 final ChecksumPath next = iter.next();
                 return toRrdpEntry(next, prefixPath, params);
             }
@@ -133,8 +133,8 @@ public class FileChecksumProcessor {
         NotificationUtils.persistNotification(path, notification.toString(), LocalDate::now);
     }
 
-    public static RrdpEntry toRrdpEntry(ChecksumPath checksumPath, String prefixPath, final ProcessorParams params) {
-        RrdpEntry entry= new RrdpEntry()
+    public static RrdpEntryProvider toRrdpEntry(ChecksumPath checksumPath, String prefixPath, final ProcessorParams params) {
+        RrdpEntryProvider entry= new RrdpEntryProvider()
                 .withState(checksumPath.state)
                 .withUri(()-> PersistenceUtils.asUri(params.entryUriPrefix, prefixPath + '/' + checksumPath.path))
                 .withHash(()->checksumPath.sha1)
@@ -169,7 +169,7 @@ public class FileChecksumProcessor {
 
                 final DifferenceType differenceType = isDifferent(calculatedMap, cs);
                 if (differenceType!=DifferenceType.the_same) {
-                    cs.state = differenceType==DifferenceType.new_one ? RrdpEnums.EntryState.PUBLISHED : RrdpEnums.EntryState.UPDATED;
+                    cs.state = differenceType==DifferenceType.new_one ? RrdpEnums.EntryState.PUBLISH : RrdpEnums.EntryState.UPDATE;
                     map.put(relativeName, cs);
                 }
 
@@ -197,7 +197,7 @@ public class FileChecksumProcessor {
     }
 
     @Nullable
-    private static String calcSha1(Path p) throws IOException {
+    public static String calcSha1(Path p) throws IOException {
         if (Files.size(p)==0) {
             return null;
         }

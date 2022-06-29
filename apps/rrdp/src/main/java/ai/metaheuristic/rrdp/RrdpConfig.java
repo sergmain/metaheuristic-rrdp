@@ -24,8 +24,8 @@ public class RrdpConfig {
     public boolean lengthOfContent = false;
 
     public Supplier<String> getSession;
-    public Supplier<Notification> currentNotification;
-    public Supplier<Iterator<RrdpEntry>> rrdpEntryIterator;
+    public Supplier<RrdpNotificationXml> currentNotification;
+    public Supplier<Iterator<RrdpEntryProvider>> rrdpEntryIterator;
     public Function<String, Integer> currSerial;
     public Consumer<String> persistNotificationEntry;
     public Supplier<RrdpEnums.NotificationEntryType> produceType;

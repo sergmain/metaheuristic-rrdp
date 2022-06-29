@@ -12,12 +12,25 @@ public class RrdpEnums {
 
     public enum NotificationEntryType {SNAPSHOT, DELTA}
 
-    public enum EntryState { PUBLISHED(true), UPDATED(false), WITHDRAWAL(true);
+    public enum EntryState { PUBLISH(true), UPDATE(false), WITHDRAWAL(true);
 
         public final boolean rfc8182;
 
         EntryState(boolean rfc8182) {
             this.rfc8182 = rfc8182;
+        }
+
+        public static EntryState to(String s) {
+            switch(s) {
+                case "publish":
+                    return PUBLISH;
+                case "withdraw":
+                    return WITHDRAWAL;
+                case "update":
+                    return UPDATE;
+                default:
+                    throw new IllegalStateException("Unknown state: " + s);
+            }
         }
     }
 }

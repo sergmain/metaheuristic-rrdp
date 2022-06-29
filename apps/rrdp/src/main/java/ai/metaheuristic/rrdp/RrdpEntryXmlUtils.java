@@ -2,6 +2,7 @@ package ai.metaheuristic.rrdp;
 
 import lombok.SneakyThrows;
 
+import javax.annotation.Nullable;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -13,27 +14,28 @@ import java.io.StringReader;
 import java.util.*;
 import java.util.function.Consumer;
 
+import static ai.metaheuristic.rrdp.RrdpCommonUtils.*;
+import static ai.metaheuristic.rrdp.RrdpCommonUtils.isAny;
+
 /**
- * @author Serge
- * Date: 6/1/2022
- * Time: 4:45 AM
+ * @author Sergio Lissner
+ * Date: 6/28/2022
+ * Time: 2:58 PM
  */
-@SuppressWarnings("WeakerAccess")
-public class RrdpUtils {
+public class RrdpEntryXmlUtils {
 
     private final static XMLInputFactory XML_FACTORY = XMLInputFactory.newInstance();
 
-    public static Notification parseNotificationXml(String xml) {
+    public static RrdpEntryXml parseRrdpEntryXml(String xml) {
         StringReader reader = new StringReader(xml);
-        return parseNotificationXml(reader);
+        return parseRrdpEntryXml(reader);
     }
 
     @SneakyThrows
-    public static Notification parseNotificationXml(Reader reader) {
+    public static RrdpEntryXml parseRrdpEntryXml(Reader reader) {
         XMLEventReader eventReader = XML_FACTORY.createXMLEventReader(reader);
-        Notification notification = parse(eventReader);
+        RrdpEntryXml notification = parse(eventReader);
         return notification;
-
     }
 
     @FunctionalInterface
@@ -49,24 +51,32 @@ public class RrdpUtils {
         }
     }
 
-    private static Notification parse(XMLEventReader eventReader) {
-        Notification notification = new Notification();
+    private static class RrdpEntryXmlEntryHolder {
+        @Nullable
+        public RrdpEntryXml.Entry entry;
+    }
 
-        EventIterator<XMLEventReader, Consumer<XMLEvent>> eventIterator = RrdpUtils::iterateEvents;
+    private static RrdpEntryXml parse(XMLEventReader eventReader) {
+        RrdpEntryXml entryXml = new RrdpEntryXml();
+
+        EventIterator<XMLEventReader, Consumer<XMLEvent>> eventIterator = RrdpEntryXmlUtils::iterateEvents;
+
+        final RrdpEntryXmlEntryHolder current = new RrdpEntryXmlEntryHolder();
 
         eventIterator.accept(eventReader, event -> {
             switch (event.getEventType()) {
                 case XMLStreamConstants.START_ELEMENT:
-                    StartElement startElement = event.asStartElement();
+                    StartElement startElement;
+                    startElement = event.asStartElement();
                     final String elementName = startElement.getName().getLocalPart();
-                    if ("notification".equals(elementName)) {
-                        initAttrForNotification(startElement.getAttributes(), notification);
+                    if (isAny(elementName, "delta", "snapshot")) {
+                        initAttrForEntryXml(startElement.getAttributes(), entryXml);
                     }
-                    else if ("snapshot".equals(elementName) || "delta".equals(elementName)) {
-                        Notification.Entry entry = new Notification.Entry();
-                        entry.type = "snapshot".equals(elementName) ? RrdpEnums.NotificationEntryType.SNAPSHOT : RrdpEnums.NotificationEntryType.DELTA;
-                        notification.entries.add(entry);
-                        initAttrForEntry(startElement.getAttributes(), entry);
+                    else if (isAny(elementName, "publish", "withdraw", "update")) {
+                        current.entry = new RrdpEntryXml.Entry();
+                        current.entry.state = RrdpEnums.EntryState.to(elementName);
+                        entryXml.entries.add(current.entry);
+                        initAttrForEntry(startElement.getAttributes(), current.entry);
                     }
                     else {
                         throw new IllegalStateException("Malformed xml, unknown xml element: " + elementName );
@@ -74,22 +84,24 @@ public class RrdpUtils {
                     break;
 
                 case XMLStreamConstants.CHARACTERS:
-                    // throw new IllegalStateException("Malformed xml, no text expected");
+                    if (current.entry!=null) {
+                        String characters = event.asCharacters().getData();
+                        current.entry.add(characters);
+                    }
+                    break;
                 case XMLStreamConstants.END_ELEMENT:
+                    current.entry = null;
                     break;
             }
         });
-        return notification;
+        return entryXml;
     }
 
-    private static void initAttrForEntry(Iterator<Attribute> attributes, Notification.Entry entry) {
+    private static void initAttrForEntry(Iterator<Attribute> attributes, RrdpEntryXml.Entry entry) {
         while (attributes.hasNext()) {
             Attribute attribute = attributes.next();
             final String attrName = attribute.getName().getLocalPart();
             switch (attrName) {
-                case "serial":
-                    entry.serial = Integer.parseInt(attribute.getValue());
-                    break;
                 case "uri":
                     entry.uri = attribute.getValue();
                     break;
@@ -105,16 +117,16 @@ public class RrdpUtils {
         }
     }
 
-    private static void initAttrForNotification(Iterator<Attribute> attributes, Notification notification) {
+    private static void initAttrForEntryXml(Iterator<Attribute> attributes, RrdpEntryXml entryXml) {
         while (attributes.hasNext()) {
             Attribute attribute = attributes.next();
             final String attrName = attribute.getName().getLocalPart();
             switch (attrName) {
                 case "session_id":
-                    notification.sessionId = attribute.getValue();
+                    entryXml.sessionId = attribute.getValue();
                     break;
                 case "serial":
-                    notification.serial = Integer.parseInt(attribute.getValue());
+                    entryXml.serial = Integer.parseInt(attribute.getValue());
                     break;
                 case "version":
                 case "xmlns":

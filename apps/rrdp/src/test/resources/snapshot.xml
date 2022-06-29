@@ -2,13 +2,13 @@
           version="1"
           session_id="9df4b597-af9e-4dca-bdda-719cce2c4e28"
           serial="2">
-    <publish uri="rsync://rpki.ripe.net/Alice/Bob.cer">
-        ZXhhbXBsZTE=
+    <publish uri="rsync://rpki.ripe.net/Alice/Bob.cer" hash="123" length="2">
+        ZXhhbXBsZTE=1
     </publish>
-    <publish uri="rsync://rpki.ripe.net/Alice/Alice.mft">
-        ZXhhbXBsZTI=
+    <publish uri="rsync://rpki.ripe.net/Alice/Alice.mft" hash="456" length="3">
+        ZXhhbXBsZTI=2
     </publish>
-    <publish uri="rsync://rpki.ripe.net/Alice/Alice.crl">
-        ZXhhbXBsZTM=
+    <publish uri="rsync://rpki.ripe.net/Alice/Alice.crl" hash="789" length="4">
+        ZXhhbXBsZTM=3
     </publish>
 </snapshot>
