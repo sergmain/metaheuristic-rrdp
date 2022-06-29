@@ -6,6 +6,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Sergio Lissner
@@ -39,5 +42,14 @@ public class RrdpCommonUtils {
         }
     }
 
-
+    public static List<RrdpNotificationXml.Entry> sortNotificationXmlEntries(RrdpNotificationXml n) {
+        return n.entries.stream()
+                .sorted((o1, o2)->{
+                    if (o1.type== RrdpEnums.NotificationEntryType.SNAPSHOT) {
+                        return -1;
+                    }
+                    return Integer.compare(o1.serial, o2.serial);
+                })
+                .collect(Collectors.toList());
+    }
 }

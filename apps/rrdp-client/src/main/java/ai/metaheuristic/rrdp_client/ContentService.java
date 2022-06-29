@@ -5,6 +5,7 @@ import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
 import ai.metaheuristic.rrdp_disk_storage.PersistenceUtils;
 import ai.metaheuristic.rrdp_disk_storage.SerialUtils;
 import ai.metaheuristic.rrdp_disk_storage.SessionUtils;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static ai.metaheuristic.rrdp.RrdpEnums.*;
+import static java.nio.file.StandardOpenOption.*;
 
 /**
  * @author Sergio Lissner
@@ -80,20 +84,27 @@ public class ContentService {
     }
 
     private void processSerials(String code, int serial, RrdpNotificationXml n) {
-        List<RrdpNotificationXml.Entry> sorted = n.entries.stream().sorted(Comparator.comparingInt(o -> o.serial)).collect(Collectors.toList());
+        List<RrdpNotificationXml.Entry> sorted = RrdpCommonUtils.sortNotificationXmlEntries(n);
         for (RrdpNotificationXml.Entry entry : sorted) {
-            if (entry.serial==null) {
-                throw new IllegalStateException("(entry.serial==null)");
+            int actualSerial = 0;
+            if (entry.type == NotificationEntryType.DELTA) {
+                if (entry.serial == null) {
+                    throw new IllegalStateException("(entry.serial==null)");
+                }
+                actualSerial = entry.serial;
             }
-            if (entry.serial<=serial) {
+            else if (entry.type == NotificationEntryType.SNAPSHOT) {
+                actualSerial = 1;
+            }
+            if (actualSerial<=serial) {
                 continue;
             }
-            processNotificationEntry(n.sessionId, entry);
+            processNotificationEntry(actualSerial, n.sessionId, entry);
         }
     }
 
     @SneakyThrows
-    private void processNotificationEntry(String sessionId, RrdpNotificationXml.Entry entry) {
+    private void processNotificationEntry(int actualSerial, String sessionId, RrdpNotificationXml.Entry entry) {
         String content = requestEntry(entry.uri);
         if (content==null) {
             throw new IllegalStateException("Notification is broken, entry wasn't found on server, entry: " + entry.uri);
@@ -103,27 +114,34 @@ public class ContentService {
         if (!sessionId.equals(entryXml.sessionId)) {
             throw new IllegalStateException("(!sessionId.equals(entryXml.sessionId))");
         }
-        if (entry.serial!=entryXml.serial) {
+        System.out.println("Entry: " + entry.uri+"\nnumber of RrdpEntryXml.Entry: "+entryXml.entries.size());
+        if (actualSerial!=entryXml.serial) {
             throw new IllegalStateException("(entry.serial!=entryXml.serial)");
         }
+        int curr = 1;
         for (RrdpEntryXml.Entry en : entryXml.entries) {
             Path path = entryXmlUriToPath(en);
-            if (en.state== RrdpEnums.EntryState.WITHDRAWAL && Files.exists(path)) {
+            System.out.print(""+entryXml.entries.size()+':'+ (curr++) + " "+ path+", length: " + en.length+ " ");
+            if (en.state== EntryState.WITHDRAWAL && Files.exists(path)) {
                 String hash = FileChecksumProcessor.calcSha1(path);
                 if (!en.hash.equals(hash)) {
                     throw new IllegalStateException("(!en.hash.equals(hash))");
                 }
+                System.out.println("WITHDRAWAL");
                 Files.delete(path);
             }
-            else if (en.state == RrdpEnums.EntryState.PUBLISH) {
+            else if (en.state == EntryState.PUBLISH) {
                 if (Files.exists(path)) {
                     String hash = FileChecksumProcessor.calcSha1(path);
                     if (!en.hash.equals(hash)) {
                         throw new IllegalStateException("(!en.hash.equals(hash))");
                     }
+                    System.out.println("EXIST, SKIP");
                 }
                 else {
+                    Files.createDirectories(path.getParent());
                     downloadAndPersistEntry(path, en);
+                    System.out.println("CREATE");
                 }
             }
         }
@@ -131,10 +149,10 @@ public class ContentService {
 
     private void downloadAndPersistEntry(Path path, RrdpEntryXml.Entry en) {
         getData(
-                "/rest/v1/replication/entry/" + en.uri,
+                en.uri,
                 (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
                 is -> {
-                    try (OutputStream os = Files.newOutputStream(path)) {
+                    try (OutputStream os = Files.newOutputStream(path, CREATE, TRUNCATE_EXISTING, WRITE)) {
                         IOUtils.copy(is, os, 8196);
                     }
                     catch (IOException e) {
