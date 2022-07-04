@@ -111,6 +111,13 @@
                     <showDeprecation>true</showDeprecation>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>ai.metaheuristic.rrdp_client.RrdpClientApplication</mainClass>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

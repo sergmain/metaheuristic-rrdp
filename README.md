@@ -5,7 +5,7 @@ Reference implementation RRDP (RFC 8182) in Java
 https://datatracker.ietf.org/doc/html/rfc8182
 
 ### requirements
-java 11  
+java 11.x or 17.x (other version >11.x should work too)  
 maven 3.5+  
 
 
@@ -16,13 +16,13 @@ mvn clean install
 ### rrdp-srv
 application.properties for rrdp-srv
 ```properties
-server.port= 8888
+server.port = 8888
 rrdp.server.path.metadata = /path/to/metadata
 rrdp.server.path.source = /path/to/actual-data
 rrdp.server.timeout.notification-refresh = 10
 rrdp.server.timeout.codes-refresh = 10
 
-logging.file.name=logs/rrpd-srv.log
+logging.file.name=<path-to-log-dir>/rrpd-srv.log
 logging.level.root = info
 ```
 
@@ -33,6 +33,11 @@ rrdp.server.timeout.codes-refresh  - timeout for refreshing a list of codes, sec
 
 'codes' is a list of top level dirs in rrdp.server.path.source
 
+cmd for running server:
+```commandline
+java -Dfile.encoding=UTF-8 -jar rrdp-srv.jar
+```
+
 
 ### rrdp-client
 application.properties for rrdp-client
@@ -41,7 +46,7 @@ rrdp.client.asset.url = http://localhost:8888
 rrdp.client.path.metadata = /path/to/metadata
 rrdp.client.path.data = /path/to/data
 
-logging.file.name=logs/rrpd-client.log
+logging.file.name=<path-to-log-dir>/rrpd-client.log
 logging.level.root = info
 ```
 
@@ -50,5 +55,9 @@ rrdp.client.path.metadata - path to metadata
 rrdp.client.path.data - path where data will be stored  
 
 
+cmd for running server:
+```commandline
+java -Dfile.encoding=UTF-8 -jar rrdp-client.jar
+```
 
 
