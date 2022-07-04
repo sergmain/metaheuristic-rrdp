@@ -16,10 +16,14 @@ mvn clean install
 ### rrdp-srv
 application.properties for rrdp-srv
 ```properties
+server.port= 8888
 rrdp.server.path.metadata = /path/to/metadata
 rrdp.server.path.source = /path/to/actual-data
 rrdp.server.timeout.notification-refresh = 10
 rrdp.server.timeout.codes-refresh = 10
+
+logging.file.name=logs/rrpd-srv.log
+logging.level.root = info
 ```
 
 rrdp.server.path.metadata - path to metadata  
@@ -33,9 +37,12 @@ rrdp.server.timeout.codes-refresh  - timeout for refreshing a list of codes, sec
 ### rrdp-client
 application.properties for rrdp-client
 ```properties
-rrdp.client.asset.url = http://localhost:8080
+rrdp.client.asset.url = http://localhost:8888
 rrdp.client.path.metadata = /path/to/metadata
 rrdp.client.path.data = /path/to/data
+
+logging.file.name=logs/rrpd-client.log
+logging.level.root = info
 ```
 
 rrdp.client.asset.url - address of asset server  
