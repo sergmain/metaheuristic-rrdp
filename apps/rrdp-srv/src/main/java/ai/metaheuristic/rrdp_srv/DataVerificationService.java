@@ -31,7 +31,7 @@ public class DataVerificationService {
     private final AtomicInteger countVerifyTasks = new AtomicInteger();
 
     @SuppressWarnings("unused")
-    public void addVerificationTask() {
+    public synchronized void addVerificationTask() {
         if (countVerifyTasks.get()>0) {
             return;
         }

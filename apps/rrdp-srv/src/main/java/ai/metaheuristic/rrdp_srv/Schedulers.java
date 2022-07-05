@@ -92,7 +92,7 @@ public class Schedulers {
     public static class ProcessorSchedulers {
 
         private final Globals globals;
-        private final DataVerificationService dataVerificationService;
+        private final CommandService commandService;
 
         // run every 12 hours
         @Scheduled(initialDelay = 30_000, fixedDelay = 12*3600*1000)
@@ -101,8 +101,8 @@ public class Schedulers {
                 return;
             }
             log.info("call dataVerificationService.processVerificationTask()");
-            dataVerificationService.addVerificationTask();
-            dataVerificationService.processVerificationTask();
+
+            commandService.startRescanning();
         }
     }
 }
