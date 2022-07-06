@@ -23,12 +23,12 @@ import java.util.List;
  * Time: 12:09 AM
  */
 @RestController
-@RequestMapping("/rest/v1/replication")
+@RequestMapping("/rest/v1/rrdp/replication")
 @Slf4j
 @RequiredArgsConstructor
 public class RrdpRestController {
 
-    public static final String REST_V_1_REPLICATION_DATA = "/rest/v1/replication/data/";
+    public static final String REST_V_1_REPLICATION_DATA = "/rest/v1/rrdp/replication/data/";
     private final ContentService contentService;
 
     @GetMapping(value= "/codes", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -36,7 +36,7 @@ public class RrdpRestController {
         return contentService.getDataCodes();
     }
 
-    // http://localhost:8080/rest/v1/replication/entry/edition/000001.xml
+    // http://localhost:8080/rest/v1/rrdp/replication/entry/edition/000001.xml
     @GetMapping(value= "/entry/{dataCode}/{uri}", produces = MediaType.APPLICATION_XML_VALUE)
     public HttpEntity<String> entry(@PathVariable String dataCode, @PathVariable String uri) {
         String content = contentService.getEntryContent(dataCode, uri);
@@ -46,7 +46,7 @@ public class RrdpRestController {
         return new ResponseEntity<>(content, HttpStatus.OK);
     }
 
-    // localhost:8080/rest/v1/replication/data/edition/statistics-unpacked/2020-10/2020-10-15/EXP/681450/677262_EXP.XML
+    // localhost:8080/rest/v1/rrdp/replication/data/edition/statistics-unpacked/2020-10/2020-10-15/EXP/681450/677262_EXP.XML
     @GetMapping(value= "/data/**", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<AbstractResource> data() {
         String uri = ServletUriComponentsBuilder.fromCurrentRequest().build().getPath();
@@ -68,7 +68,7 @@ public class RrdpRestController {
         return responseEntity;
     }
 
-    // localhost:8080/rest/v1/replication/edition/notification.xml
+    // localhost:8080/rest/v1/rrdp/replication/edition/notification.xml
     @GetMapping(value= "/{dataCode}/notification.xml", produces = MediaType.APPLICATION_XML_VALUE)
     public HttpEntity<String> notification(@PathVariable String dataCode) {
         String content = contentService.getNotificationContent(dataCode);

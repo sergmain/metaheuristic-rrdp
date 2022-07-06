@@ -45,7 +45,7 @@ import static java.nio.file.StandardOpenOption.*;
 @Slf4j
 public class ContentService {
 
-    public static final String REST_V_1_REPLICATION_DATA = "/rest/v1/replication/data/";
+    public static final String REST_V_1_RRDP_REPLICATION_DATA = "/rest/v1/rrdp/replication/data/";
     private final Globals globals;
 
     public void process() {
@@ -162,11 +162,11 @@ public class ContentService {
     }
 
     private Path entryXmlUriToPath(RrdpEntryXml.Entry en) {
-        int idx = en.uri.indexOf(REST_V_1_REPLICATION_DATA);
+        int idx = en.uri.indexOf(REST_V_1_RRDP_REPLICATION_DATA);
         if (idx==-1) {
             throw new IllegalStateException("(idx==-1)");
         }
-        String uri = en.uri.substring(idx+REST_V_1_REPLICATION_DATA.length());
+        String uri = en.uri.substring(idx+ REST_V_1_RRDP_REPLICATION_DATA.length());
         final Path path = globals.path.data.path.resolve(uri);
         return path;
     }
@@ -183,14 +183,14 @@ public class ContentService {
     public String requestNotification(String dataCode) {
         final StringBuilder content = new StringBuilder();
         getData(
-                "/rest/v1/replication/" + dataCode + "/notification.xml",
+                "/rest/v1/rrdp/replication/" + dataCode + "/notification.xml",
                 (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
                 is -> content.append(asString(is)) );
 
         return content.toString();
     }
 
-    // http://localhost:8080/rest/v1/replication/entry/edition/000001.xml
+    // http://localhost:8080/rest/v1/rrdp/replication/entry/edition/000001.xml
     @Nullable
     @SneakyThrows
     public String requestEntry(String entryUri) {
@@ -203,7 +203,7 @@ public class ContentService {
     public List<String> requestCodes() {
         final StringBuilder content = new StringBuilder();
         getData(
-                "/rest/v1/replication/codes",
+                "/rest/v1/rrdp/replication/codes",
                 (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
                 is -> content.append(asString(is)));
         final String s = content.toString();

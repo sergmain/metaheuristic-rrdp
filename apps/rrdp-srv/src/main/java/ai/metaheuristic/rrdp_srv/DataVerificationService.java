@@ -24,7 +24,7 @@ public class DataVerificationService {
     private final Globals globals;
 
     private static final FileChecksumProcessor.ProcessorParams PROCESSOR_PARAMS =
-            new FileChecksumProcessor.ProcessorParams("/rest/v1/replication/data/", "/rest/v1/replication/entry/");
+            new FileChecksumProcessor.ProcessorParams("/rest/v1/rrdp/replication/data/", "/rest/v1/rrdp/replication/entry/");
 
     private final ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 

@@ -23,7 +23,7 @@ import java.util.List;
  * Time: 12:09 AM
  */
 @RestController
-@RequestMapping("/rest/v1/command")
+@RequestMapping("/rest/v1/rrdp/command")
 @Slf4j
 @RequiredArgsConstructor
 public class RrdpCommandRestController {
