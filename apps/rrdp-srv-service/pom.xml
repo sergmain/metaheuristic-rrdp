@@ -12,8 +12,10 @@
     </parent>
 
     <groupId>ai.metaheuristic</groupId>
-    <artifactId>rrdp-srv</artifactId>
-    <version>1.2</version>
+    <artifactId>rrdp-srv-service</artifactId>
+    <version>1.0</version>
+
+    <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -25,8 +27,8 @@
     <dependencies>
         <dependency>
             <groupId>ai.metaheuristic</groupId>
-            <artifactId>rrdp-srv-service</artifactId>
-            <version>1.0</version>
+            <artifactId>rrdp-disk-storage</artifactId>
+            <version>1.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -79,7 +81,7 @@
     </dependencies>
 
     <build>
-        <finalName>rrdp-srv</finalName>
+        <finalName>rrdp-srv-service</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -90,13 +92,6 @@
                     <release>11</release>
                     <encoding>${project.build.sourceEncoding}</encoding>
                     <showDeprecation>true</showDeprecation>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>ai.metaheuristic.rrdp_srv.RrdpSrvApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

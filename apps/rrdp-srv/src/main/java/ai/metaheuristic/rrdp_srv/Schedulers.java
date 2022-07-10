@@ -1,5 +1,8 @@
 package ai.metaheuristic.rrdp_srv;
 
+import ai.metaheuristic.rrdp_srv_service.CommandService;
+import ai.metaheuristic.rrdp_srv_service.ContentService;
+import ai.metaheuristic.rrdp_srv_service.Globals;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;

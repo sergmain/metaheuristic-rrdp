@@ -8,5 +8,4 @@ import org.springframework.core.io.ByteArrayResource;
  * Time: 12:48 AM
  */
 public class Consts {
-    public static final ByteArrayResource ZERO_BYTE_ARRAY_RESOURCE = new ByteArrayResource(new byte[0]);
 }

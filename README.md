@@ -55,7 +55,7 @@ rrdp.client.path.metadata - path to metadata
 rrdp.client.path.data - path where data will be stored  
 
 
-cmd for running server:
+cmd for running client:
 ```commandline
 java -Dfile.encoding=UTF-8 -jar rrdp-client.jar
 ```

@@ -1,4 +1,4 @@
-package ai.metaheuristic.rrdp_srv;
+package ai.metaheuristic.rrdp_srv_service;
 
 import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
 import ai.metaheuristic.rrdp_disk_storage.MetadataUtils;

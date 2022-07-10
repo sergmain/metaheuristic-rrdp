@@ -1,4 +1,4 @@
-package ai.metaheuristic.rrdp_srv;
+package ai.metaheuristic.rrdp_srv_service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
