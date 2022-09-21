@@ -120,10 +120,7 @@ public class ContentService {
             if (en.state==EntryState.WITHDRAWAL) {
                 if (Files.exists(path)) {
                     String hash = FileChecksumProcessor.calcSha1(path);
-                    if (!en.hash.equals(hash)) {
-                        System.out.print(" !!! HASH IS DIFFERENT !!! ");
-                    }
-                    System.out.println("EXIST, WITHDRAWAL");
+                    System.out.println("" + ((en.hash.equals(hash)) ? "" : "!!! HASH IS DIFFERENT, ") + "EXIST, WITHDRAWAL");
                     Files.delete(path);
                 }
                 else {
@@ -134,14 +131,17 @@ public class ContentService {
                 if (Files.exists(path)) {
                     String hash = FileChecksumProcessor.calcSha1(path);
                     if (!en.hash.equals(hash)) {
-                        throw new IllegalStateException("(!en.hash.equals(hash))");
+                        downloadAndPersistEntry(path, en);
+                        System.out.print(" !!! HASH IS DIFFERENT, REPLACED");
                     }
-                    System.out.println("EXIST, SAME");
+                    else {
+                        System.out.println("EXIST, SAME");
+                    }
                 }
                 else {
                     Files.createDirectories(path.getParent());
                     downloadAndPersistEntry(path, en);
-                    System.out.println("CREATE");
+                    System.out.println("CREATED");
                 }
             }
         }
