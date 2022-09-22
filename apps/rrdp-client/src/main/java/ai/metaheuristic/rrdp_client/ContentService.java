@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -132,7 +133,7 @@ public class ContentService {
                     String hash = FileChecksumProcessor.calcSha1(path);
                     if (!en.hash.equals(hash)) {
                         downloadAndPersistEntry(path, en);
-                        System.out.print(" !!! HASH IS DIFFERENT, REPLACED");
+                        System.out.println("!!! HASH IS DIFFERENT, REPLACED");
                     }
                     else {
                         System.out.println("EXIST, SAME");
@@ -223,7 +224,7 @@ public class ContentService {
     public void getData(String uri, Function<URI, Request> requestFunc, Consumer<InputStream> inputStreamConsumer) {
         final String url = globals.asset.url + uri;
 
-        final URIBuilder builder = new URIBuilder(url).setCharset(StandardCharsets.UTF_8);
+        final URIBuilder builder = new URIBuilder(URLEncoder.encode(url, StandardCharsets.UTF_8)).setCharset(StandardCharsets.UTF_8);
         final URI build = builder.build();
         final Request request = requestFunc.apply(build);
 
