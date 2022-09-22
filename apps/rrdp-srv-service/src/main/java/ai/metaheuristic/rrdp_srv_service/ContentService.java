@@ -1,6 +1,5 @@
 package ai.metaheuristic.rrdp_srv_service;
 
-import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
 import ai.metaheuristic.rrdp_disk_storage.MetadataUtils;
 import ai.metaheuristic.rrdp_disk_storage.NotificationUtils;
 import lombok.RequiredArgsConstructor;
@@ -15,8 +14,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor.processPath;
 
 /**
  * @author Sergio Lissner
@@ -91,6 +88,9 @@ public class ContentService {
 
     @SneakyThrows
     public void refreshNotificationContents() {
+        if (Files.notExists(globals.path.metadata.path)) {
+            throw new RuntimeException("Path "+ globals.path.metadata.path +" doesn't exist");
+        }
         Files.walkFileTree(globals.path.metadata.path, EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path p, BasicFileAttributes attrs) {

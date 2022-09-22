@@ -1,0 +1,3 @@
+<snapshot xmlns="http://www.ripe.net/rpki/rrdp" version="1" serial="1" session_id="3a7f3085-f1db-4fe5-ac55-034f06241710">
+ <publish uri="/rest/v1/rrdp/replication/data/edition/statistics-unpacked/2020-07/2020-07-14/RLAW355/59563/59563_RLAW355 - Ð¼Ð¾Ñ.xml" hash="0b7b646312777f2fe90bf22548913bf6d10b79ec" length="205946"/>
+</snapshot>

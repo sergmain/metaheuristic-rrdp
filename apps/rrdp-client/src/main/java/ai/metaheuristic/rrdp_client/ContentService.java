@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -224,7 +225,7 @@ public class ContentService {
     public void getData(String uri, Function<URI, Request> requestFunc, Consumer<InputStream> inputStreamConsumer) {
         final String url = globals.asset.url + uri;
 
-        final URIBuilder builder = new URIBuilder(URLEncoder.encode(url, StandardCharsets.UTF_8)).setCharset(StandardCharsets.UTF_8);
+        final URIBuilder builder = getBuilder(url);
         final URI build = builder.build();
         final Request request = requestFunc.apply(build);
 
@@ -249,5 +250,7 @@ public class ContentService {
         }
     }
 
-
+    public static URIBuilder getBuilder(String url) throws URISyntaxException {
+        return new URIBuilder(URLEncoder.encode(url, StandardCharsets.UTF_8)).setCharset(StandardCharsets.UTF_8);
+    }
 }
