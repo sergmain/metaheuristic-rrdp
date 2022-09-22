@@ -6,6 +6,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -27,6 +28,8 @@ public class ContentServiceTest {
 
 
         assertEquals(1, entryXml.entries.size());
-        assertDoesNotThrow(()-> ContentService.getBuilder(entryXml.entries.get(0).uri));
+        URI uri = assertDoesNotThrow(()-> ContentService.getUri("http://localhost", entryXml.entries.get(0).uri));
+        assertEquals("localhost", uri.getHost());
+        assertEquals("http", uri.getScheme());
     }
 }

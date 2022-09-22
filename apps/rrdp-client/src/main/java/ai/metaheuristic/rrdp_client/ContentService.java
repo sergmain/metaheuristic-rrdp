@@ -17,6 +17,7 @@ import org.apache.http.client.fluent.Request;
 import org.apache.http.client.fluent.Response;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriUtils;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -223,10 +224,7 @@ public class ContentService {
 
     @SneakyThrows
     public void getData(String uri, Function<URI, Request> requestFunc, Consumer<InputStream> inputStreamConsumer) {
-        final String url = globals.asset.url + uri;
-
-        final URIBuilder builder = getBuilder(url);
-        final URI build = builder.build();
+        final URI build = getUri(globals.asset.url, uri);
         final Request request = requestFunc.apply(build);
 
         Response response = Executor.newInstance().execute(request);
@@ -250,7 +248,13 @@ public class ContentService {
         }
     }
 
-    public static URIBuilder getBuilder(String url) throws URISyntaxException {
-        return new URIBuilder(URLEncoder.encode(url, StandardCharsets.UTF_8)).setCharset(StandardCharsets.UTF_8);
+    public static URI getUri(String baseUrl, String uri) throws URISyntaxException {
+        final String url = baseUrl + UriUtils.encodePath(uri, StandardCharsets.UTF_8);
+
+        final URIBuilder builder = new URIBuilder(url).setCharset(StandardCharsets.UTF_8);
+        final URI build = builder.build();
+        return build;
     }
+
+
 }
