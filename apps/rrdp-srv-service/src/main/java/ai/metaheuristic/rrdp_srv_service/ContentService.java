@@ -6,8 +6,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriUtils;
 
 import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
@@ -65,16 +67,23 @@ public class ContentService {
     @Nullable
     @SneakyThrows
     public Path getDataContentPath(String dataUri) {
-        Path dataPath = globals.path.source.path.resolve(dataUri);
-        if (Files.notExists(dataPath)) {
-            return null;
-        }
+        String decodedPath = decodePath(dataUri);
+        Path dataPath = globals.path.source.path.resolve(decodedPath);
         Path normalizedDataPath = dataPath.normalize();
         if (!normalizedDataPath.startsWith(dataPath)) {
-            log.warn("Data uri "+ dataUri+" doesn't point to source path");
+            log.warn("Data uri "+ decodedPath+" doesn't point to source path");
+            return null;
+        }
+        if (Files.notExists(dataPath)) {
+            log.warn("path was found on disk: " + dataPath);
             return null;
         }
         return normalizedDataPath;
+    }
+
+    public static String decodePath(String dataUri) {
+        final String path = UriUtils.decode(dataUri, StandardCharsets.UTF_8);
+        return path;
     }
 
     public String getNotificationContent(String dataCode) {
