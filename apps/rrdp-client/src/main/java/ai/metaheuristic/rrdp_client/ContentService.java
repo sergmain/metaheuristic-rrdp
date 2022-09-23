@@ -230,15 +230,19 @@ public class ContentService {
         Response response = Executor.newInstance().execute(request);
 
         final HttpResponse httpResponse = response.returnResponse();
-        if (httpResponse.getStatusLine().getStatusCode() != 200) {
+        final int statusCode = httpResponse.getStatusLine().getStatusCode();
+        if (statusCode != 200) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final HttpEntity entity = httpResponse.getEntity();
             if (entity != null) {
                 entity.writeTo(baos);
             }
 
-            log.error("Server response:\n" + baos.toString());
-            throw new RuntimeException("Server response: " + baos);
+            final String s = baos.toString();
+            final String es = "Server error: " + statusCode + ", response:\n" +
+                              (s.isBlank() ? "<response is blank>" : s);
+            log.error(es);
+            throw new RuntimeException(es);
         }
         final HttpEntity entity = httpResponse.getEntity();
         if (entity != null) {
