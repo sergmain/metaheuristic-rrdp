@@ -223,9 +223,9 @@ public class ContentService {
     }
 
     @SneakyThrows
-    public void getData(String uri, Function<URI, Request> requestFunc, Consumer<InputStream> inputStreamConsumer) {
-        final URI build = getUri(globals.asset.url, uri);
-        final Request request = requestFunc.apply(build);
+    public void getData(String uriPath, Function<URI, Request> requestFunc, Consumer<InputStream> inputStreamConsumer) {
+        final URI uri = getUri(globals.asset.url, uriPath);
+        final Request request = requestFunc.apply(uri);
 
         Response response = Executor.newInstance().execute(request);
 
@@ -239,7 +239,7 @@ public class ContentService {
             }
 
             final String s = baos.toString();
-            final String es = "Server error: " + statusCode + ", response:\n" +
+            final String es = "Server error: " + statusCode + ", uri: "+uri.toString()+", response:\n" +
                               (s.isBlank() ? "<response is blank>" : s);
             log.error(es);
             throw new RuntimeException(es);
