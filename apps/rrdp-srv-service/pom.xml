@@ -7,13 +7,13 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.3</version>
+        <version>2.7.4</version>
         <relativePath/>
     </parent>
 
     <groupId>ai.metaheuristic</groupId>
     <artifactId>rrdp-srv-service</artifactId>
-    <version>1.0</version>
+    <version>1.0.1</version>
 
     <packaging>jar</packaging>
 
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>ai.metaheuristic</groupId>
             <artifactId>rrdp-disk-storage</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
