@@ -36,25 +36,27 @@ public class FileChecksumProcessor {
     }
 
     @SneakyThrows
-    public static void processPath(Path metadataPath, Path actualDataPath, ProcessorParams params) {
-        List<Path> metadataDataPaths = PersistenceUtils.getPaths(actualDataPath);
-        for (Path dataPath : metadataDataPaths) {
-            Path actualMetadataPath = PersistenceUtils.resolveSubPath(metadataPath, dataPath.getFileName().toString());
-            processDataPath(actualMetadataPath, dataPath, params);
+    public static void processPath(Path metadataPath, Path actualDataPath, RrdpData.TaskParams params, ProcessorParams processorParams) {
+        Path dataPath = actualDataPath.resolve(params.code);
+        if (Files.notExists(dataPath)) {
+            System.out.println("Path "+ dataPath+" doesn't exists");;
+            return;
         }
+        Path actualMetadataPath = PersistenceUtils.resolveSubPath(metadataPath, dataPath.getFileName().toString());
+        processDataPath(actualMetadataPath, dataPath, processorParams, params.paths);
     }
 
     @SneakyThrows
-    public static Map<String, ChecksumPath> process(Path specificMetadataPath, Path dataPath) {
+    public static Map<String, ChecksumPath> process(Path specificMetadataPath, Path dataPath, List<String> paths) {
         if (Files.notExists(dataPath)) {
             return Map.of();
         }
 
-        Map<String, ChecksumPath> diff = processDiff(specificMetadataPath, dataPath);
+        Map<String, ChecksumPath> diff = processDiff(specificMetadataPath, dataPath, paths);
         return diff;
     }
 
-    private static void processDataPath(Path path, Path actualDataPath, final ProcessorParams params) throws IOException {
+    private static void processDataPath(Path path, Path actualDataPath, final ProcessorParams params, List<String> paths) throws IOException {
 
         String prefixPath = path.getFileName().toString();
 
@@ -75,8 +77,7 @@ public class FileChecksumProcessor {
                 ? new RrdpNotificationXml()
                 : RrdpNotificationXmlUtils.parseNotificationXml(notificationXml);
 
-        Map<String, ChecksumPath> diff = FileChecksumProcessor.process(path, actualDataPath);
-//        diff.forEach( (k, v) -> System.out.println(v));
+        Map<String, ChecksumPath> diff = FileChecksumProcessor.process(path, actualDataPath, paths);
         ChecksumManager.persist(path, diff);
 
         if (diff.isEmpty()) {
@@ -144,14 +145,14 @@ public class FileChecksumProcessor {
     }
 
     @SneakyThrows
-    private static Map<String, ChecksumPath> processDiff(Path specificMetadataPath, Path dataPath) {
+    private static Map<String, ChecksumPath> processDiff(Path specificMetadataPath, Path dataPath, List<String> paths) {
         final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(specificMetadataPath);
-        final Map<String, ChecksumPath> newMap = loadChecksumPath(dataPath, calculatedMap);
+        final Map<String, ChecksumPath> newMap = loadChecksumPath(dataPath, calculatedMap, paths);
         return newMap;
     }
 
     // calc checksums for data source
-    public static Map<String, ChecksumPath> loadChecksumPath(Path dataPath, Map<String, ChecksumPath> calculatedMap) throws IOException {
+    public static Map<String, ChecksumPath> loadChecksumPath(Path dataPath, Map<String, ChecksumPath> calculatedMap, List<String> paths) throws IOException {
         final AtomicInteger count = new AtomicInteger();
         final Map<String, ChecksumPath> map = new HashMap<>(10000);
         final Set<String> processed = new HashSet<>(10000);
@@ -161,6 +162,11 @@ public class FileChecksumProcessor {
             public FileVisitResult visitFile(Path p, BasicFileAttributes attrs) throws IOException {
                 Path relativePath = dataPath.relativize(p);
                 String relativeName = relativePath.toString();
+                if (!paths.isEmpty()) {
+                    if (paths.stream().noneMatch(o->o.equals(relativeName))) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                }
                 ChecksumPath cs = new ChecksumPath();
                 cs.path = relativeName;
                 cs.size = Files.size(p);

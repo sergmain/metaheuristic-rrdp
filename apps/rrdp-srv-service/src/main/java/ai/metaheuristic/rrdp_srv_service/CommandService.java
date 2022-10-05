@@ -14,9 +14,13 @@ public class CommandService {
 
     private final DataVerificationService dataVerificationService;
 
-    public boolean startRescanning() {
+    public boolean startRescanning(String code, String list) {
         dataVerificationService.addVerificationTask();
         dataVerificationService.processVerificationTask();
         return true;
+    }
+
+    public void startAllRescanning() {
+
     }
 }

@@ -105,7 +105,7 @@ public class Schedulers {
             }
             log.info("call dataVerificationService.processVerificationTask()");
 
-            commandService.startRescanning();
+            commandService.startAllRescanning();
         }
     }
 }

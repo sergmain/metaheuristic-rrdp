@@ -8,7 +8,7 @@ package ai.metaheuristic.rrdp;
 public class RrdpEnums {
 
     // Blake3-256
-    public enum ChecksumAlgo { SHA1, SHA256, MD5 }
+    public enum ChecksumAlgo { SHA1, SHA256, MD5, BLAKE }
 
     public enum NotificationEntryType {SNAPSHOT, DELTA}
 

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import static ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor.ProcessorParams;
 import static ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor.processPath;
@@ -23,7 +24,8 @@ public class WalkerTest {
         final Path metadataPath = PersistenceUtils.resolveSubPath(Path.of("result"), "metadata");
 
         final ProcessorParams p = new ProcessorParams("/rest/v1/replication/data/", "/rest/v1/replication/entry/");
-        processPath(metadataPath, actualDataPath, p);
+        RrdpData.TaskParams params = new RrdpData.TaskParams("edition", List.of());
+        processPath(metadataPath, actualDataPath, params, p);
     }
 
 }

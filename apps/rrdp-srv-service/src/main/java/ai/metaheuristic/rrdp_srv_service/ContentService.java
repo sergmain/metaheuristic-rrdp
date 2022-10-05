@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriUtils;
 
 import javax.annotation.Nullable;
+import javax.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -38,15 +39,20 @@ public class ContentService {
     }
 
     public static class CodesCache {
-        private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        private final ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
-        private final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
+        public final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+        public final ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
+        public final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 
-        private List<String> codes = new ArrayList<>();
+        public List<String> codes = new ArrayList<>();
     }
 
     public final NotificationCache notificationCache = new NotificationCache();
     public final CodesCache codesCache = new CodesCache();
+
+    @PostConstruct
+    public void init() {
+        refreshDataCodes();
+    }
 
     @SneakyThrows
     @Nullable
