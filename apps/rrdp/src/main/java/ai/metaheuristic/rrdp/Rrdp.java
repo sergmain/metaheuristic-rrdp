@@ -134,6 +134,15 @@ public class Rrdp {
                 cfg.persistNotificationEntry.accept(
                         " <publish uri=\""+entry.uri.get()+"\" hash=\""+entry.hash.get()+"\"");
 
+                if (cfg.lengthOfContent) {
+                    if (cfg.rfc8182) {
+                        throw new IllegalStateException("Entry " + entry.uri.get() + " can't use length because cfg.rfc8182 is true");
+                    }
+                    if (entry.length==null) {
+                        throw new IllegalStateException("Entry " + entry.uri.get() + " must provide a length of content.");
+                    }
+                    cfg.persistNotificationEntry.accept(" length=\""+entry.length.get()+"\"");
+                }
                 if (cfg.isFileContent) {
                     if (entry.content==null) {
                         throw new IllegalStateException("(entry.content==null)");
@@ -145,8 +154,18 @@ public class Rrdp {
                 }
             }
             else {
-                cfg.persistNotificationEntry.accept(
-                        " <withdraw uri=\""+entry.uri.get()+"\" hash=\""+entry.hash.get()+"\"/>\n");
+                cfg.persistNotificationEntry.accept(" <withdraw uri=\""+entry.uri.get()+"\" hash=\""+entry.hash.get()+"\"");
+                if (cfg.lengthOfContent) {
+                    if (cfg.rfc8182) {
+                        throw new IllegalStateException("Entry " + entry.uri.get() + " can't use length because cfg.rfc8182 is true");
+                    }
+                    if (entry.length==null) {
+                        throw new IllegalStateException("Entry " + entry.uri.get() + " must provide a length of content.");
+                    }
+                    cfg.persistNotificationEntry.accept(" length=\""+entry.length.get()+"\"");
+                }
+
+                cfg.persistNotificationEntry.accept("/>\n");
             }
         }
         cfg.persistNotificationEntry.accept("</delta>\n");

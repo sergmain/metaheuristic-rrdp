@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
 
 /**
  * @author Sergio Lissner
@@ -17,6 +18,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @RequiredArgsConstructor
 public class RrdpClientApplication implements CommandLineRunner {
 
+    private final ApplicationContext appCtx;
     public final ContentService contentService;
 
     public static void main(String[] args) {
@@ -30,6 +32,11 @@ public class RrdpClientApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        contentService.process();
+        if (args.length!=2 || !"--code".equals(args[0])) {
+            System.out.println("required params wasn't found: --code <code>");
+
+        }
+        contentService.process(args[1]);
+        System.exit(SpringApplication.exit(appCtx, () -> 0));
     }
 }

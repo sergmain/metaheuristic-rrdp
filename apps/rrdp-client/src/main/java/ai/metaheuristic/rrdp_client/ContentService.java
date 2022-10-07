@@ -10,6 +10,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Executor;
@@ -26,11 +27,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -51,36 +52,35 @@ public class ContentService {
     public static final String REST_V_1_RRDP_REPLICATION_DATA = "/rest/v1/rrdp/replication/data/";
     private final Globals globals;
 
-    public void process() {
-        List<String> codes = requestCodes();
-        for (String code : codes) {
-            System.out.println("code = " + code);
-            String notification = requestNotification(code);
-            if (notification==null) {
-                System.out.println("Notification for code '" + code+"' is null");
-                continue;
-            }
-            System.out.println("notification:\n"+ notification);
-            RrdpNotificationXml n = RrdpNotificationXmlUtils.parseNotificationXml(notification);
-
-            Path metadataPath = PersistenceUtils.resolveSubPath(globals.path.metadata.path, code);
-
-            String session = SessionUtils.getSession(metadataPath);
-            Integer serial = SerialUtils.getSerial(metadataPath);
-            if (serial==null) {
-                serial = 0;
-            }
-            if (!n.sessionId.equals(session)) {
-                SessionUtils.persistSession(metadataPath, n.sessionId, LocalDate::now);
-                serial = 0;
-            }
-
-            processSerials(metadataPath, serial, n);
+    public void process(String code) {
+//        List<String> codes = requestCodes();
+        System.out.println("code = " + code);
+         String notification = requestNotification(code);
+        if (notification==null) {
+            System.out.println("Notification for code '" + code+"' is null");
+            return;
         }
+        System.out.println("notification:\n"+ notification);
+        RrdpNotificationXml n = RrdpNotificationXmlUtils.parseNotificationXml(notification);
+
+        Path metadataPath = PersistenceUtils.resolveSubPath(globals.path.metadata.path, code);
+
+        String session = SessionUtils.getSession(metadataPath);
+        Integer serial = SerialUtils.getSerial(metadataPath);
+        if (serial==null) {
+            serial = 0;
+        }
+        if (!n.sessionId.equals(session)) {
+            SessionUtils.persistSession(metadataPath, n.sessionId, LocalDate::now);
+            serial = 0;
+        }
+
+        processSerials(metadataPath, serial, n);
     }
 
     private void processSerials(Path metadataPath, int serial, RrdpNotificationXml n) {
         List<RrdpNotificationXml.Entry> sorted = RrdpCommonUtils.sortNotificationXmlEntries(n);
+        List<Pair<Integer, RrdpEntryXml>> entryPairs = new ArrayList<>();
         for (RrdpNotificationXml.Entry entry : sorted) {
             int actualSerial = 0;
             if (entry.type == NotificationEntryType.DELTA) {
@@ -96,13 +96,53 @@ public class ContentService {
                 System.out.println("serial #"+actualSerial+" was already processed");
                 continue;
             }
-            processNotificationEntry(actualSerial, n.sessionId, entry);
-            SerialUtils.persistSerial(metadataPath, actualSerial, LocalDate::now);
+            entryPairs.add(Pair.of(actualSerial, requestRrdpEntryXml(n.sessionId, actualSerial, entry)));
+        }
+        processNewEntries(metadataPath, n, entryPairs);
+    }
+
+    private void processNewEntries(Path metadataPath, RrdpNotificationXml n, List<Pair<Integer, RrdpEntryXml>> entryPairs) {
+
+        reduceEntries(entryPairs);
+
+        for (Pair<Integer, RrdpEntryXml> pair : entryPairs) {
+            processNotificationEntry(pair.getRight());
+            SerialUtils.persistSerial(metadataPath, pair.getLeft(), LocalDate::now);
         }
     }
 
-    @SneakyThrows
-    private void processNotificationEntry(int actualSerial, String sessionId, RrdpNotificationXml.Entry entry) {
+    private void reduceEntries(List<Pair<Integer, RrdpEntryXml>> entryPairs) {
+        if (entryPairs.size()<2) {
+            return;
+        }
+
+        // -1 т.к проверять последнюю дельту смысла нет
+        for (int i = 0; i < entryPairs.size()-1; i++) {
+            Pair<Integer, RrdpEntryXml> pair = entryPairs.get(i);
+
+            for (RrdpEntryXml.Entry entry : pair.getRight().entries) {
+                if (entry.state==EntryState.WITHDRAWAL) {
+                    continue;
+                }
+                for (int k = i+1; k < entryPairs.size(); k++) {
+                    Pair<Integer, RrdpEntryXml> otherPair = entryPairs.get(k);
+                    boolean changed = false;
+                    for (RrdpEntryXml.Entry toCheck : otherPair.getRight().entries) {
+                        if (toCheck.state==EntryState.WITHDRAWAL && toCheck.uri.equals(entry.uri)) {
+                            entry.state = EntryState.WITHDRAWAL;
+                            changed = true;
+                            break;
+                        }
+                    }
+                    if (changed) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public RrdpEntryXml requestRrdpEntryXml(String sessionId, int serial, RrdpNotificationXml.Entry entry) {
         String content = requestEntry(entry.uri);
         if (content==null) {
             throw new IllegalStateException("Notification is broken, entry wasn't found on server, entry: " + entry.uri);
@@ -113,9 +153,14 @@ public class ContentService {
             throw new IllegalStateException("(!sessionId.equals(entryXml.sessionId))");
         }
         System.out.println("Entry: " + entry.uri+"\nnumber of RrdpEntryXml.Entry: "+entryXml.entries.size());
-        if (actualSerial!=entryXml.serial) {
+        if (serial!=entryXml.serial) {
             throw new IllegalStateException("(entry.serial!=entryXml.serial)");
         }
+        return entryXml;
+    }
+
+    @SneakyThrows
+    private void processNotificationEntry(RrdpEntryXml entryXml) {
         int curr = 1;
         for (RrdpEntryXml.Entry en : entryXml.entries) {
             Path path = entryXmlUriToPath(en);
