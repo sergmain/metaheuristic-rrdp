@@ -36,14 +36,14 @@ public class FileChecksumProcessor {
     }
 
     @SneakyThrows
-    public static void processPath(Path metadataPath, Path actualDataPath, RrdpData.TaskParams params, ProcessorParams processorParams) {
-        Path dataPath = actualDataPath.resolve(params.code);
+    public static void processPath(Path metadataPath, Path actualDataPath, String code, List<String> paths, ProcessorParams processorParams) {
+        Path dataPath = actualDataPath.resolve(code);
         if (Files.notExists(dataPath)) {
             System.out.println("Path "+ dataPath+" doesn't exists");;
             return;
         }
         Path actualMetadataPath = PersistenceUtils.resolveSubPath(metadataPath, dataPath.getFileName().toString());
-        processDataPath(actualMetadataPath, dataPath, processorParams, params.paths);
+        processDataPath(actualMetadataPath, dataPath, processorParams, paths);
     }
 
     @SneakyThrows
@@ -163,7 +163,8 @@ public class FileChecksumProcessor {
                 Path relativePath = dataPath.relativize(p);
                 String relativeName = relativePath.toString();
                 if (!paths.isEmpty()) {
-                    if (paths.stream().noneMatch(o->o.equals(relativeName))) {
+                    String fullPath = p.toString();
+                    if (paths.stream().noneMatch(o->o.equals(fullPath))) {
                         return FileVisitResult.CONTINUE;
                     }
                 }

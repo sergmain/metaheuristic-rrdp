@@ -1,7 +1,6 @@
 package ai.metaheuristic.rrdp_srv_service;
 
 import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
-import ai.metaheuristic.rrdp_disk_storage.RrdpData;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,6 @@ import static ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor.processPa
 public class DataVerificationService {
 
     private final Globals globals;
-    private final ContentService contentService;
 
     private static final FileChecksumProcessor.ProcessorParams PROCESSOR_PARAMS =
             new FileChecksumProcessor.ProcessorParams("/rest/v1/rrdp/replication/data/", "/rest/v1/rrdp/replication/entry/");
@@ -44,26 +42,37 @@ public class DataVerificationService {
         public final ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
         public final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();
 
-        public final TreeMap<String, RrdpData.TaskParams> params = new TreeMap<>();
+        public final TreeMap<String, RrdpData.TaskParams> taskParams = new TreeMap<>();
 
         @SneakyThrows
         public List<String> getKeys() {
             try {
                 paramsMap.readLock.lock();
-                return new ArrayList<>(paramsMap.params.keySet());
+                return new ArrayList<>(taskParams.keySet());
             } finally {
                 paramsMap.readLock.unlock();
             }
         }
 
+        @SneakyThrows
+        public List<RrdpData.TaskParams> getTasksParams() {
+            try {
+                paramsMap.readLock.lock();
+                return new ArrayList<>(taskParams.values());
+            } finally {
+                paramsMap.readLock.unlock();
+            }
+        }
+
+        @SuppressWarnings("unused")
         @Nullable
         @SneakyThrows
         public RrdpData.TaskParams geParams(String code) {
             try {
-                paramsMap.readLock.lock();
-                return paramsMap.params.get(code);
+                readLock.lock();
+                return taskParams.get(code);
             } finally {
-                paramsMap.readLock.unlock();
+                readLock.unlock();
             }
         }
 
@@ -71,28 +80,28 @@ public class DataVerificationService {
         @SneakyThrows
         public RrdpData.TaskParams getAndRemoveParams(String code) {
             try {
-                paramsMap.writeLock.lock();
-                RrdpData.TaskParams params = paramsMap.params.get(code);
+                writeLock.lock();
+                RrdpData.TaskParams params = taskParams.get(code);
                 if (params!=null) {
-                    paramsMap.params.remove(code);
+                    taskParams.remove(code);
                 }
                 return params;
             } finally {
-                paramsMap.writeLock.unlock();
+                writeLock.unlock();
             }
         }
 
         @SneakyThrows
         public void putParams(String code, RrdpData.TaskParams params) {
             try {
-                paramsMap.writeLock.lock();
-                if (paramsMap.params.containsKey(code)) {
+                writeLock.lock();
+                if (taskParams.containsKey(code)) {
                     log.warn("Task for rescanning with code '"+ code +"'  already exists");
                     return;
                 }
-                paramsMap.params.put(code, params);
+                taskParams.put(code, params);
             } finally {
-                paramsMap.writeLock.unlock();
+                writeLock.unlock();
             }
         }
     }
@@ -130,8 +139,9 @@ public class DataVerificationService {
         }
     }
 
-    @SuppressWarnings("unused")
-    public synchronized void addVerificationTask() {
+    public synchronized void addVerificationTask(RrdpData.TaskParams params) {
+        paramsMap.putParams(params.code, params);
+
         if (countVerifyTasks.get()>0) {
             return;
         }
@@ -142,15 +152,22 @@ public class DataVerificationService {
         if (executor.getActiveCount()>0) {
             return;
         }
-        ParamsIterator it = new ParamsIterator();
-        while (it.hasNext()) {
-            activeTaskParams = it.next();
-            if (activeTaskParams==null) {
-                continue;
-            }
-            processPath(globals.path.metadata.path, globals.path.source.path, activeTaskParams, PROCESSOR_PARAMS);
-            activeTaskParams = null;
-        }
+        executor.execute(()-> {
+                    ParamsIterator it = new ParamsIterator();
+                    while (it.hasNext()) {
+                        activeTaskParams = it.next();
+                        if (activeTaskParams == null) {
+                            continue;
+                        }
+                        processPath(globals.path.metadata.path, globals.path.source.path, activeTaskParams.code, activeTaskParams.paths, PROCESSOR_PARAMS);
+                        activeTaskParams = null;
+                    }
+        });
         countVerifyTasks.decrementAndGet();
+    }
+
+    public static RrdpData.RrdpServerStatus status() {
+        return new RrdpData.RrdpServerStatus(activeTaskParams, paramsMap.getTasksParams());
+
     }
 }

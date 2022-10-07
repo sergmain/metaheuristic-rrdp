@@ -24,8 +24,7 @@ public class WalkerTest {
         final Path metadataPath = PersistenceUtils.resolveSubPath(Path.of("result"), "metadata");
 
         final ProcessorParams p = new ProcessorParams("/rest/v1/replication/data/", "/rest/v1/replication/entry/");
-        RrdpData.TaskParams params = new RrdpData.TaskParams("edition", List.of());
-        processPath(metadataPath, actualDataPath, params, p);
+        processPath(metadataPath, actualDataPath, "edition", List.of(), p);
     }
 
 }
