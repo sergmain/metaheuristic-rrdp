@@ -78,12 +78,14 @@ curl http://localhost:8080/rest/v1/rrdp/command/status
 
 rescan with using concrete code and paths
 ```text
-curl -X POST -F "file=@rescan-paths.txt" http://localhost:8080/rest/v1/rrdp/command/rescan-paths/test
+curl -X POST -F "file=@rescan-paths.txt" http://localhost:8080/rest/v1/rrdp/command/rescan-paths/<code>
 ```
 
 
 name of file with paths can be any but you have to change cmd-line accordingly
 content of rescan-paths.txt - one absolute path per line 
+
+```<code>``` - name of root directory
 
 
 
