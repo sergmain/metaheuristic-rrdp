@@ -10,6 +10,8 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.file.PathUtils;
+import org.apache.commons.io.filefilter.FileFileFilter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -32,7 +34,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -52,33 +56,138 @@ public class ContentService {
     public static final String REST_V_1_RRDP_REPLICATION_DATA = "/rest/v1/rrdp/replication/data/";
     private final Globals globals;
 
+    public enum ContextState { OK, NOT_EXIST }
+
+    public static class ProcessingContext {
+        public ContextState state = ContextState.OK;
+        public String session;
+        public int serial;
+        public RrdpNotificationXml n;
+        public Path metadataPath;
+    }
+
     public void process(String code) {
-//        List<String> codes = requestCodes();
         System.out.println("code = " + code);
-         String notification = requestNotification(code);
-        if (notification==null) {
-            System.out.println("Notification for code '" + code+"' is null");
+        boolean exist = checkCode(code);
+        if (!exist) {
             return;
         }
+
+        ProcessingContext ctx = prepareContext(code);
+        if (ctx.state == ContextState.NOT_EXIST) {
+            deleteForCode(code);
+            return;
+        }
+
+        List<Pair<Integer, RrdpEntryXml>> entryPairs = processSerials(ctx.n, ctx.serial);
+
+        reduceEntries(entryPairs);
+
+        processNewEntries(ctx.metadataPath, ctx.n, entryPairs);
+    }
+
+    private boolean checkCode(String code) {
+        List<String> codes = requestCodes();
+        if (!codes.contains(code)) {
+            deleteForCode(code);
+            return false;
+        }
+        return true;
+    }
+
+    public void verify(String code) {
+        System.out.println("code = " + code);
+
+        ProcessingContext ctx = prepareContext(code);
+        if (ctx.state == ContextState.NOT_EXIST) {
+            deleteForCode(code);
+            return;
+        }
+
+        List<Pair<Integer, RrdpEntryXml>> entryPairs = processSerials(ctx.n, 0);
+        Set<String> paths = collectPaths(entryPairs);
+        System.out.println("Total paths for processing: " + paths.size());
+
+        try {
+            PathUtils.walk(globals.path.data.path, FileFileFilter.INSTANCE, Integer.MAX_VALUE, false).forEach(p-> {
+                if (Files.isDirectory(p)) {
+                    return;
+                }
+                final String absPath = p.toAbsolutePath().toString();
+                if (!paths.contains(absPath)) {
+                    try {
+                        Files.delete(p);
+                    }
+                    catch (IOException e) {
+                        System.out.println("Error while deleting a path: " + absPath+", error: " + e.getMessage());
+                    }
+                }
+            });
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Set<String> collectPaths(List<Pair<Integer, RrdpEntryXml>> entryPairs) {
+        Set<String> set = new HashSet<>(2_000_000);
+        for (Pair<Integer, RrdpEntryXml> pair : entryPairs) {
+            for (RrdpEntryXml.Entry en : pair.getRight().entries) {
+                Path path = entryXmlUriToPath(en);
+                set.add(path.toAbsolutePath().toString());
+            }
+        }
+        return set;
+    }
+
+    private void deleteForCode(String code) {
+        System.out.println("Code "+ code +" doesn't exist at server side. Local dir will be deleted.");
+        final Path path = globals.path.data.path.resolve(code);
+        if (Files.notExists(path)) {
+            return;
+        }
+        try {
+            PathUtils.delete(path);
+        }
+        catch (IOException e) {
+            System.out.println("can't delete path " + path+", error: " + e.getMessage());
+        }
+    }
+
+    private ProcessingContext prepareContext(String code) {
+        ProcessingContext ctx = new ProcessingContext();
+        ctx.metadataPath = PersistenceUtils.resolveSubPath(globals.path.metadata.path, code);
+
+        String notification = requestNotification(code);
+        if (notification==null) {
+            ctx.state = ContextState.NOT_EXIST;
+            System.out.println("Notification for code '" + code + "' is null");
+            return ctx;
+        }
+
         System.out.println("notification:\n"+ notification);
-        RrdpNotificationXml n = RrdpNotificationXmlUtils.parseNotificationXml(notification);
+        ctx.n = RrdpNotificationXmlUtils.parseNotificationXml(notification);
 
-        Path metadataPath = PersistenceUtils.resolveSubPath(globals.path.metadata.path, code);
-
-        String session = SessionUtils.getSession(metadataPath);
-        Integer serial = SerialUtils.getSerial(metadataPath);
+        String session = SessionUtils.getSession(ctx.metadataPath);
+        Integer serial = SerialUtils.getSerial(ctx.metadataPath);
         if (serial==null) {
             serial = 0;
         }
-        if (!n.sessionId.equals(session)) {
-            SessionUtils.persistSession(metadataPath, n.sessionId, LocalDate::now);
+        ctx.serial = serial;
+        if (!ctx.n.sessionId.equals(session)) {
+            session = ctx.n.sessionId;
+            SessionUtils.persistSession(ctx.metadataPath, ctx.n.sessionId, LocalDate::now);
             serial = 0;
         }
-
-        processSerials(metadataPath, serial, n);
+        //noinspection ConstantConditions
+        if (session==null) {
+            throw new IllegalStateException("(session==null)");
+        }
+        ctx.session = session;
+        return ctx;
     }
 
-    private void processSerials(Path metadataPath, int serial, RrdpNotificationXml n) {
+    private List<Pair<Integer, RrdpEntryXml>> processSerials(RrdpNotificationXml n, int serial) {
         List<RrdpNotificationXml.Entry> sorted = RrdpCommonUtils.sortNotificationXmlEntries(n);
         List<Pair<Integer, RrdpEntryXml>> entryPairs = new ArrayList<>();
         for (RrdpNotificationXml.Entry entry : sorted) {
@@ -98,20 +207,17 @@ public class ContentService {
             }
             entryPairs.add(Pair.of(actualSerial, requestRrdpEntryXml(n.sessionId, actualSerial, entry)));
         }
-        processNewEntries(metadataPath, n, entryPairs);
+        return entryPairs;
     }
 
     private void processNewEntries(Path metadataPath, RrdpNotificationXml n, List<Pair<Integer, RrdpEntryXml>> entryPairs) {
-
-        reduceEntries(entryPairs);
-
         for (Pair<Integer, RrdpEntryXml> pair : entryPairs) {
             processNotificationEntry(pair.getRight());
             SerialUtils.persistSerial(metadataPath, pair.getLeft(), LocalDate::now);
         }
     }
 
-    private void reduceEntries(List<Pair<Integer, RrdpEntryXml>> entryPairs) {
+    private static void reduceEntries(List<Pair<Integer, RrdpEntryXml>> entryPairs) {
         if (entryPairs.size()<2) {
             return;
         }
@@ -219,7 +325,7 @@ public class ContentService {
         return path;
     }
 
-    private void verifyChecksum(RrdpNotificationXml.Entry entry, String content) {
+    private static void verifyChecksum(RrdpNotificationXml.Entry entry, String content) {
         String actualHash = DigestUtils.sha256Hex(content);
         if (!entry.hash.equals(actualHash)) {
             throw new RuntimeException("Hashes are different, expected: " + entry.hash+", actual: " + actualHash);

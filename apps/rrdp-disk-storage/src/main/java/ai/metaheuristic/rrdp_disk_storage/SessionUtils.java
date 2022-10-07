@@ -34,6 +34,7 @@ public class SessionUtils {
         return false;
     }
 
+    @Nullable
     @SneakyThrows
     public static String persistSession(Path metadataPath, String session, Supplier<LocalDate> localDateFunc ) {
         Path serialPath = MetadataUtils.getSessionPath(metadataPath);
@@ -41,6 +42,7 @@ public class SessionUtils {
                 serialPath, ()->session, SessionUtils::verifyAsUUID, localDateFunc);
     }
 
+    @Nullable
     @SneakyThrows
     public static Path getSessionFile(Path metadataPath) {
         Path sessionPath = MetadataUtils.getSessionPath(metadataPath);

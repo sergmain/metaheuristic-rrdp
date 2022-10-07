@@ -32,11 +32,19 @@ public class RrdpClientApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (args.length!=2 || !"--code".equals(args[0])) {
-            System.out.println("required params wasn't found: --code <code>");
-
+        if ((args.length!=2 && args.length!=3) || !"--code".equals(args[0])) {
+            System.out.println("required params wasn't found: --code <code> [--verify]");
         }
-        contentService.process(args[1]);
+        if (args.length==3 && !"--verify".equals(args[2])) {
+            System.out.println("required params wasn't found: --code <code> [--verify]");
+        }
+        if (args.length==3) {
+            contentService.verify(args[1]);
+        }
+        else {
+            contentService.process(args[1]);
+        }
+
         System.exit(SpringApplication.exit(appCtx, () -> 0));
     }
 }
