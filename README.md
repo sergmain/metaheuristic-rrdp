@@ -13,7 +13,7 @@ maven 3.5+
 mvn clean install
 
 
-### rrdp-srv
+## rrdp-srv
 application.properties for rrdp-srv
 ```properties
 server.port = 8888
@@ -38,29 +38,6 @@ cmd for running server:
 java -Dfile.encoding=UTF-8 -jar rrdp-srv.jar
 ```
 
-
-### rrdp-client
-application.properties for rrdp-client
-```properties
-rrdp.client.asset.url = http://localhost:8888
-rrdp.client.path.metadata = /path/to/metadata
-rrdp.client.path.data = /path/to/data
-
-logging.file.name=<path-to-log-dir>/rrpd-client.log
-logging.level.root = info
-```
-
-rrdp.client.asset.url - address of asset server  
-rrdp.client.path.metadata - path to metadata  
-rrdp.client.path.data - path where data will be stored  
-
-
-cmd for running client:
-```commandline
-java -Dfile.encoding=UTF-8 -jar rrdp-client.jar
-```
-
-
 ### rrdp-srv rest commands
 
 start rescanning with concrete code
@@ -83,9 +60,52 @@ curl -X POST -F "file=@rescan-paths.txt" http://localhost:8080/rest/v1/rrdp/comm
 
 
 name of file with paths can be any but you have to change cmd-line accordingly
-content of rescan-paths.txt - one absolute path per line 
+content of rescan-paths.txt - one absolute path per line
 
 ```<code>``` - name of root directory
 
 
 
+## rrdp-client
+
+application.properties for rrdp-client
+```properties
+rrdp.client.asset.url = http://localhost:8888
+rrdp.client.path.metadata = /path/to/metadata
+rrdp.client.path.data = /path/to/data
+
+logging.file.name=<path-to-log-dir>/rrpd-client.log
+logging.level.root = info
+```
+
+rrdp.client.asset.url - address of asset server  
+rrdp.client.path.metadata - path to metadata  
+rrdp.client.path.data - path where data will be stored  
+
+
+cmd for running client:
+```commandline
+java -Dfile.encoding=UTF-8 -jar rrdp-client.jar
+```
+
+### rrdp-client command-line prameters
+code:
+- required - true
+- has value - true
+
+clean:
+- required - false
+- has value - false
+
+verify:
+- required - false
+- has value - false
+
+only clean or verify can be used at the same time.
+
+Examples:
+```commandline
+java -Dfile.encoding=UTF-8 -jar rrdp-client.jar -code test
+java -Dfile.encoding=UTF-8 -jar rrdp-client.jar -code test -clean
+java -Dfile.encoding=UTF-8 -jar rrdp-client.jar -code test -verify
+```

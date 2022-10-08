@@ -46,9 +46,9 @@ public class RrdpClientApplication implements CommandLineRunner {
         }
 
         String code = cmd.getOptionValue("code");
-        if (cmd.hasOption("verify") || cmd.hasOption("full-verify")) {
+        if (cmd.hasOption("clean") || cmd.hasOption("verify")) {
             try {
-                contentService.verify(code, cmd.hasOption("full-verify"));
+                contentService.verify(code, cmd.hasOption("verify"));
             }
             catch (IOException e) {
                 e.printStackTrace();
@@ -65,11 +65,11 @@ public class RrdpClientApplication implements CommandLineRunner {
 
     public static CommandLine parseArgs(String... args) throws ParseException {
         Options options = new Options();
-        Option codeOption = new Option("c", "code", true, "Code for sync");
+        Option codeOption = new Option("code", "code", true, "Code for sync");
         codeOption.setRequired(true);
         options.addOption(codeOption);
-        Option verifyOption = new Option("v", "verify", false, "Verify");
-        Option fullVerifyOption = new Option("f", "full-verify", false, "Full verify");
+        Option verifyOption = new Option("clean", "clean", false, "Clean");
+        Option fullVerifyOption = new Option("verify", "verify", false, "Full verify");
         OptionGroup group = new OptionGroup();
         group.addOption(verifyOption);
         group.addOption(fullVerifyOption);

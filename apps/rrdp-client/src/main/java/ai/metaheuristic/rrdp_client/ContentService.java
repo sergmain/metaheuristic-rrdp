@@ -98,7 +98,7 @@ public class ContentService {
         return true;
     }
 
-    public void verify(String code, boolean isFull) throws IOException {
+    public void verify(String code, boolean onlyClean) throws IOException {
         System.out.println("code = " + code);
 
         ProcessingContext ctx = prepareContext(code);
@@ -126,7 +126,7 @@ public class ContentService {
             }
         });
 
-        if (isFull) {
+        if (!onlyClean) {
             entryPairs = processSerials(ctx.n, 0);
             reduceEntries(entryPairs);
             processNewEntries(ctx.sessionPath, entryPairs);
@@ -222,7 +222,7 @@ public class ContentService {
             return;
         }
 
-        // -1 т.к проверять последнюю дельту смысла нет
+        // -1 because there is no meaning to verify the last delta
         for (int i = 0; i < entryPairs.size()-1; i++) {
             Pair<Integer, RrdpEntryXml> pair = entryPairs.get(i);
 

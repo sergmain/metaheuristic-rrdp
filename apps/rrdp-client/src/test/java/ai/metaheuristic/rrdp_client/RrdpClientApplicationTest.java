@@ -6,9 +6,7 @@ import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.ParseException;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
-import static ai.metaheuristic.rrdp_client.RrdpClientApplication.*;
+import static ai.metaheuristic.rrdp_client.RrdpClientApplication.parseArgs;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -23,12 +21,26 @@ public class RrdpClientApplicationTest {
         assertEquals("test", parseArgs("--code", "test").getOptionValue("code"));
 
         assertFalse(parseArgs("--code", "test").hasOption("verify"));
+        assertTrue(parseArgs("--code", "test", "--clean").hasOption("clean"));
+        assertFalse(parseArgs("--code", "test", "--verify").hasOption("clean"));
         assertTrue(parseArgs("--code", "test", "--verify").hasOption("verify"));
-        assertFalse(parseArgs("--code", "test", "--full-verify").hasOption("verify"));
-        assertTrue(parseArgs("--code", "test", "--full-verify").hasOption("full-verify"));
 
-        assertThrows(AlreadySelectedException.class, ()->parseArgs("--code", "test", "--verify", "--full-verify").hasOption("verify"));
+        assertThrows(AlreadySelectedException.class, ()->parseArgs("--code", "test", "--clean", "--verify").hasOption("clean"));
         assertThrows(MissingArgumentException.class, ()->parseArgs("--code").getOptionValue("code"));
+        assertThrows(MissingOptionException.class, RrdpClientApplication::parseArgs);
+    }
+
+    @Test
+    public void test_56() throws ParseException {
+        assertEquals("test", parseArgs("-code", "test").getOptionValue("code"));
+
+        assertFalse(parseArgs("-code", "test").hasOption("verify"));
+        assertTrue(parseArgs("-code", "test", "-clean").hasOption("clean"));
+        assertFalse(parseArgs("-code", "test", "-verify").hasOption("clean"));
+        assertTrue(parseArgs("-code", "test", "-verify").hasOption("verify"));
+
+        assertThrows(AlreadySelectedException.class, ()->parseArgs("-code", "test", "-clean", "-verify").hasOption("clean"));
+        assertThrows(MissingArgumentException.class, ()->parseArgs("-code").getOptionValue("code"));
         assertThrows(MissingOptionException.class, RrdpClientApplication::parseArgs);
     }
 }
