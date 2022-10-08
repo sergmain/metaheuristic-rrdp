@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.paths.MetadataPath;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,25 +20,27 @@ public class SessionUtilsTest {
     @Test
     public void test(@TempDir Path tempPath) {
 
-        assertNull(SessionUtils.getSessionFile(tempPath));
-        String session = SessionUtils.getSession(tempPath);
+        MetadataPath metadataPath = new MetadataPath(tempPath);
+        assertNull(SessionUtils.getSessionFile(metadataPath));
+
+        String session = SessionUtils.getSession(metadataPath);
         assertNull(session);
 
-        String session1 = SessionUtils.persistSession(tempPath, UUID.randomUUID().toString(), LocalDate::now);
+        String session1 = SessionUtils.persistSession(metadataPath, UUID.randomUUID().toString(), LocalDate::now);
         assertNotNull(session1);
         assertDoesNotThrow(()-> UUID.fromString(session1));
 
-        Path sessionPath1 = SessionUtils.getSessionFile(tempPath);
+        Path sessionPath1 = SessionUtils.getSessionFile(metadataPath);
         assertNotNull(sessionPath1);
 
 
-        String session2 = SessionUtils.getSession(tempPath);
+        String session2 = SessionUtils.getSession(metadataPath);
         assertNotNull(session2);
         assertDoesNotThrow(()-> UUID.fromString(session2));
 
         assertEquals(session1, session2);
 
-        Path sessionPath2 = SessionUtils.getSessionFile(tempPath);
+        Path sessionPath2 = SessionUtils.getSessionFile(metadataPath);
         assertNotNull(sessionPath2);
 
 
@@ -47,23 +50,24 @@ public class SessionUtilsTest {
     @Test
     public void testWithDates(@TempDir Path tempPath) {
 
-        String session = SessionUtils.getSession(tempPath);
+        MetadataPath metadataPath = new MetadataPath(tempPath);
+        String session = SessionUtils.getSession(metadataPath);
         assertNull(session);
 
-        String session1 = SessionUtils.persistSession(tempPath, UUID.randomUUID().toString(), ()->LocalDate.now().minusDays(6));
+        String session1 = SessionUtils.persistSession(metadataPath, UUID.randomUUID().toString(), ()->LocalDate.now().minusDays(6));
         assertNotNull(session1);
         assertDoesNotThrow(()-> UUID.fromString(session1));
 
-        Path sessionPath1 = SessionUtils.getSessionFile(tempPath);
+        Path sessionPath1 = SessionUtils.getSessionFile(metadataPath);
         assertNotNull(sessionPath1);
 
-        String session2 = SessionUtils.getSession(tempPath);
+        String session2 = SessionUtils.getSession(metadataPath);
         assertNotNull(session2);
         assertDoesNotThrow(()-> UUID.fromString(session2));
 
         assertEquals(session1, session2);
 
-        Path sessionPath2 = SessionUtils.getSessionFile(tempPath);
+        Path sessionPath2 = SessionUtils.getSessionFile(metadataPath);
         assertNotNull(sessionPath2);
 
 

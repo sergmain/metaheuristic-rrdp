@@ -1,6 +1,7 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
 import ai.metaheuristic.rrdp.RrdpEnums;
+import ai.metaheuristic.rrdp.paths.MetadataPath;
 
 import java.nio.file.Path;
 
@@ -16,13 +17,13 @@ public class RrdpDiskStorage {
 
     public final RrdpEnums.ChecksumAlgo checksumAlgo;
     public final Path data;
-    public final Path metadata;
+    public final MetadataPath metadataPath;
 
-    public RrdpDiskStorage(RrdpEnums.ChecksumAlgo checksumAlgo, Path data, Path metadata) {
+    public RrdpDiskStorage(RrdpEnums.ChecksumAlgo checksumAlgo, Path data, MetadataPath metadataPath) {
         this.checksumAlgo = checksumAlgo;
         this.data = data;
-        this.metadata = metadata;
-        final String metadataAbs = metadata.toFile().getAbsolutePath();
+        this.metadataPath = metadataPath;
+        final String metadataAbs = metadataPath.path.toFile().getAbsolutePath();
         final String dataAbs = data.toFile().getAbsolutePath();
         if (metadataAbs.startsWith(dataAbs)) {
             throw new IllegalStateException(" path for metedata can't be inside data path. data: "+dataAbs+", metadata: " +metadataAbs);
@@ -30,7 +31,7 @@ public class RrdpDiskStorage {
     }
 
     public void produce() {
-        String session = getSession(metadata);
+        String session = getSession(metadataPath);
     }
 
 }

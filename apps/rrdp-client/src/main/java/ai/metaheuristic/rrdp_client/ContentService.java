@@ -1,6 +1,8 @@
 package ai.metaheuristic.rrdp_client;
 
 import ai.metaheuristic.rrdp.*;
+import ai.metaheuristic.rrdp.paths.MetadataPath;
+import ai.metaheuristic.rrdp.paths.SessionPath;
 import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
 import ai.metaheuristic.rrdp_disk_storage.PersistenceUtils;
 import ai.metaheuristic.rrdp_disk_storage.SerialUtils;
@@ -63,7 +65,8 @@ public class ContentService {
         public String session;
         public int serial;
         public RrdpNotificationXml n;
-        public Path metadataPath;
+        public MetadataPath metadataPath;
+        public SessionPath sessionPath;
     }
 
     public void process(String code) {
@@ -83,7 +86,7 @@ public class ContentService {
 
         reduceEntries(entryPairs);
 
-        processNewEntries(ctx.metadataPath, ctx.n, entryPairs);
+        processNewEntries(ctx.sessionPath, entryPairs);
     }
 
     private boolean checkCode(String code) {
@@ -95,7 +98,7 @@ public class ContentService {
         return true;
     }
 
-    public void verify(String code) {
+    public void verify(String code, boolean isFull) throws IOException {
         System.out.println("code = " + code);
 
         ProcessingContext ctx = prepareContext(code);
@@ -108,24 +111,25 @@ public class ContentService {
         Set<String> paths = collectPaths(entryPairs);
         System.out.println("Total paths for processing: " + paths.size());
 
-        try {
-            PathUtils.walk(globals.path.data.path, FileFileFilter.INSTANCE, Integer.MAX_VALUE, false).forEach(p-> {
-                if (Files.isDirectory(p)) {
-                    return;
+        PathUtils.walk(globals.path.data.path, FileFileFilter.INSTANCE, Integer.MAX_VALUE, false).forEach(p-> {
+            if (Files.isDirectory(p)) {
+                return;
+            }
+            final String absPath = p.toAbsolutePath().toString();
+            if (!paths.contains(absPath)) {
+                try {
+                    Files.delete(p);
                 }
-                final String absPath = p.toAbsolutePath().toString();
-                if (!paths.contains(absPath)) {
-                    try {
-                        Files.delete(p);
-                    }
-                    catch (IOException e) {
-                        System.out.println("Error while deleting a path: " + absPath+", error: " + e.getMessage());
-                    }
+                catch (IOException e) {
+                    System.out.println("Error while deleting a path: " + absPath+", error: " + e.getMessage());
                 }
-            });
-        }
-        catch (IOException e) {
-            e.printStackTrace();
+            }
+        });
+
+        if (isFull) {
+            entryPairs = processSerials(ctx.n, 0);
+            reduceEntries(entryPairs);
+            processNewEntries(ctx.sessionPath, entryPairs);
         }
     }
 
@@ -156,7 +160,7 @@ public class ContentService {
 
     private ProcessingContext prepareContext(String code) {
         ProcessingContext ctx = new ProcessingContext();
-        ctx.metadataPath = PersistenceUtils.resolveSubPath(globals.path.metadata.path, code);
+        ctx.metadataPath = new MetadataPath(PersistenceUtils.resolveSubPath(globals.path.metadata.path, code));
 
         String notification = requestNotification(code);
         if (notification==null) {
@@ -167,23 +171,19 @@ public class ContentService {
 
         System.out.println("notification:\n"+ notification);
         ctx.n = RrdpNotificationXmlUtils.parseNotificationXml(notification);
+        ctx.sessionPath = new SessionPath(ctx.metadataPath.path.resolve(ctx.n.sessionId));
 
-        String session = SessionUtils.getSession(ctx.metadataPath);
-        Integer serial = SerialUtils.getSerial(ctx.metadataPath);
-        if (serial==null) {
-            serial = 0;
+        int serial = 0;
+        if (!ctx.n.sessionId.equals(SessionUtils.getSession(ctx.metadataPath))) {
+            SessionUtils.persistSession(ctx.metadataPath, ctx.n.sessionId, LocalDate::now);
+        }
+        else {
+            Integer currSerial = SerialUtils.getSerial(ctx.sessionPath);
+            serial = (currSerial==null) ? 0 : currSerial;
         }
         ctx.serial = serial;
-        if (!ctx.n.sessionId.equals(session)) {
-            session = ctx.n.sessionId;
-            SessionUtils.persistSession(ctx.metadataPath, ctx.n.sessionId, LocalDate::now);
-            serial = 0;
-        }
-        //noinspection ConstantConditions
-        if (session==null) {
-            throw new IllegalStateException("(session==null)");
-        }
-        ctx.session = session;
+        ctx.session = ctx.n.sessionId;
+
         return ctx;
     }
 
@@ -210,10 +210,10 @@ public class ContentService {
         return entryPairs;
     }
 
-    private void processNewEntries(Path metadataPath, RrdpNotificationXml n, List<Pair<Integer, RrdpEntryXml>> entryPairs) {
+    private void processNewEntries(SessionPath sessionPath, List<Pair<Integer, RrdpEntryXml>> entryPairs) {
         for (Pair<Integer, RrdpEntryXml> pair : entryPairs) {
             processNotificationEntry(pair.getRight());
-            SerialUtils.persistSerial(metadataPath, pair.getLeft(), LocalDate::now);
+            SerialUtils.persistSerial(sessionPath, pair.getLeft(), LocalDate::now);
         }
     }
 

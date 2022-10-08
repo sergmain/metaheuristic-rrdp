@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.paths.SessionPath;
 import lombok.SneakyThrows;
 
 import javax.annotation.Nullable;
@@ -16,22 +17,22 @@ public class NotificationUtils {
 
     @SneakyThrows
     @Nullable
-    public static String getNotification(Path metadataPath) {
-        Path dataPath = MetadataUtils.getNotificationPath(metadataPath);
+    public static String getNotification(SessionPath sessionPath) {
+        Path dataPath = MetadataUtils.getNotificationPath(sessionPath);
         return PersistenceUtils.getLatestContent(dataPath, (o)->true);
     }
 
     @SneakyThrows
     @Nullable
-    public static String persistNotification(Path metadataPath, String notificationXml, Supplier<LocalDate> localDateFunc ) {
-        Path dataPath = MetadataUtils.getNotificationPath(metadataPath);
+    public static String persistNotification(SessionPath sessionPath, String notificationXml, Supplier<LocalDate> localDateFunc ) {
+        Path dataPath = MetadataUtils.getNotificationPath(sessionPath);
         return PersistenceUtils.persistContent(dataPath, ()->notificationXml, (o)->true, localDateFunc);
     }
 
     @SneakyThrows
     @Nullable
-    public static Path getNotificationFile(Path metadataPath) {
-        Path dataPath = MetadataUtils.getNotificationPath(metadataPath);
+    public static Path getNotificationFile(SessionPath sessionPath) {
+        Path dataPath = MetadataUtils.getNotificationPath(sessionPath);
         return PersistenceUtils.getLatestContentFile(dataPath, null);
     }
 }

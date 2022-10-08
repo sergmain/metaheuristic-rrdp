@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.paths.MetadataPath;
 import lombok.SneakyThrows;
 
 import javax.annotation.Nullable;
@@ -17,8 +18,8 @@ public class SessionUtils {
 
     @SneakyThrows
     @Nullable
-    public static String getSession(Path metadataPath) {
-        Path sessionPath = MetadataUtils.getSessionPath(metadataPath);
+    public static String getSession(MetadataPath metadataPath) {
+        Path sessionPath = MetadataUtils.getPathForSession(metadataPath);
         return PersistenceUtils.getLatestContent(sessionPath, SessionUtils::verifyAsUUID);
     }
 
@@ -36,16 +37,16 @@ public class SessionUtils {
 
     @Nullable
     @SneakyThrows
-    public static String persistSession(Path metadataPath, String session, Supplier<LocalDate> localDateFunc ) {
-        Path serialPath = MetadataUtils.getSessionPath(metadataPath);
+    public static String persistSession(MetadataPath metadataPath, String session, Supplier<LocalDate> localDateFunc ) {
+        Path pathForSession = MetadataUtils.getPathForSession(metadataPath);
         return PersistenceUtils.persistContent(
-                serialPath, ()->session, SessionUtils::verifyAsUUID, localDateFunc);
+                pathForSession, ()->session, SessionUtils::verifyAsUUID, localDateFunc);
     }
 
     @Nullable
     @SneakyThrows
-    public static Path getSessionFile(Path metadataPath) {
-        Path sessionPath = MetadataUtils.getSessionPath(metadataPath);
+    public static Path getSessionFile(MetadataPath metadataPath) {
+        Path sessionPath = MetadataUtils.getPathForSession(metadataPath);
         return PersistenceUtils.getLatestContentFile(sessionPath, null);
     }
 }

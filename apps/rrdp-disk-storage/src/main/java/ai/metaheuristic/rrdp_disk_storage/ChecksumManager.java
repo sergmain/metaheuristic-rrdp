@@ -1,5 +1,7 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.paths.MetadataPath;
+import ai.metaheuristic.rrdp.paths.SessionPath;
 import lombok.SneakyThrows;
 
 import java.io.BufferedReader;
@@ -23,8 +25,8 @@ public class ChecksumManager {
 
     // Load the current checksums
     @SneakyThrows
-    public static Map<String, ChecksumPath> load(Path path) {
-        Path checksumPath = MetadataUtils.getChecksumPath(path);
+    public static Map<String, ChecksumPath> load(SessionPath sessionPath) {
+        Path checksumPath = MetadataUtils.getChecksumPath(sessionPath);
 
         System.out.println("Load checksum from " + checksumPath);
         final Map<String, ChecksumPath> map = new HashMap<>();
@@ -43,8 +45,8 @@ public class ChecksumManager {
     }
 
     @SneakyThrows
-    public static void persist(Path path, Map<String, ChecksumPath> map) {
-        Path checksumPath = MetadataUtils.getChecksumPath(path);
+    public static void persist(SessionPath sessionPath, Map<String, ChecksumPath> map) {
+        Path checksumPath = MetadataUtils.getChecksumPath(sessionPath);
 
         Map<String, Path> jsonPaths = new HashMap<>(260);
         for (ChecksumPath value : map.values()) {

@@ -1,5 +1,8 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.paths.MetadataPath;
+import ai.metaheuristic.rrdp.paths.SessionPath;
+
 import java.nio.file.Path;
 
 /**
@@ -14,23 +17,23 @@ public class MetadataUtils {
     public static final String ENTRY_METADATA_PATH = "entry";
     private static final String CHECKSUM_METADATA_PATH = "checksum";
 
-    public static Path getSerialPath(Path metadataPath) {
-        return PersistenceUtils.resolveSubPath(metadataPath, SERIAL_METADATA_PATH);
+    public static Path getPathForSession(MetadataPath metadataPath) {
+        return PersistenceUtils.resolveSubPath(metadataPath.path, SESSION_METADATA_PATH);
     }
 
-    public static Path getSessionPath(Path metadataPath) {
-        return PersistenceUtils.resolveSubPath(metadataPath, SESSION_METADATA_PATH);
+    public static Path getSerialPath(SessionPath sessionPath) {
+        return PersistenceUtils.resolveSubPath(sessionPath.path, SERIAL_METADATA_PATH);
     }
 
-    public static Path getNotificationPath(Path metadataPath) {
-        return PersistenceUtils.resolveSubPath(metadataPath, NOTIFICATION_METADATA_PATH);
+    public static Path getNotificationPath(SessionPath sessionPath) {
+        return PersistenceUtils.resolveSubPath(sessionPath.path, NOTIFICATION_METADATA_PATH);
     }
 
-    public static Path getEntryPath(Path metadataPath) {
-        return PersistenceUtils.resolveSubPath(metadataPath, ENTRY_METADATA_PATH);
+    public static Path getEntryPath(SessionPath sessionPath) {
+        return PersistenceUtils.resolveSubPath(sessionPath.path, ENTRY_METADATA_PATH);
     }
 
-    public static Path getChecksumPath(Path metadataPath) {
-        return PersistenceUtils.resolveSubPath(metadataPath, CHECKSUM_METADATA_PATH);
+    public static Path getChecksumPath(SessionPath sessionPath) {
+        return PersistenceUtils.resolveSubPath(sessionPath.path, CHECKSUM_METADATA_PATH);
     }
 }

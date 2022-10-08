@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.paths.SessionPath;
 import lombok.SneakyThrows;
 
 import javax.annotation.Nullable;
@@ -16,8 +17,8 @@ public class SerialUtils {
 
     @Nullable
     @SneakyThrows
-    public static Integer getSerial(Path metadataPath) {
-        Path serialPath = MetadataUtils.getSerialPath(metadataPath);
+    public static Integer getSerial(SessionPath sessionPath) {
+        Path serialPath = MetadataUtils.getSerialPath(sessionPath);
         final String content = PersistenceUtils.getLatestContent(serialPath, SerialUtils::verifyAsInteger);
         return content!=null ? Integer.valueOf(content) : null;
     }
@@ -39,16 +40,16 @@ public class SerialUtils {
 
     @SneakyThrows
     @Nullable
-    public static String persistSerial(Path metadataPath, int serial, Supplier<LocalDate> localDateFunc ) {
-        Path serialPath = MetadataUtils.getSerialPath(metadataPath);
+    public static String persistSerial(SessionPath sessionPath, int serial, Supplier<LocalDate> localDateFunc ) {
+        Path serialPath = MetadataUtils.getSerialPath(sessionPath);
         return PersistenceUtils.persistContent(
                 serialPath, () -> Integer.toString(serial), SerialUtils::verifyAsInteger, localDateFunc);
     }
 
     @SneakyThrows
     @Nullable
-    public static Path getSerialFile(Path metadataPath) {
-        Path serialPath = MetadataUtils.getSerialPath(metadataPath);
+    public static Path getSerialFile(SessionPath sessionPath) {
+        Path serialPath = MetadataUtils.getSerialPath(sessionPath);
         return PersistenceUtils.getLatestContentFile(serialPath, null);
     }
 }

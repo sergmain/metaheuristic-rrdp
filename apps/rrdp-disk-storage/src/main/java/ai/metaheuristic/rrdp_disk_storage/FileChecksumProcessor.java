@@ -1,6 +1,8 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
 import ai.metaheuristic.rrdp.*;
+import ai.metaheuristic.rrdp.paths.MetadataPath;
+import ai.metaheuristic.rrdp.paths.SessionPath;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -39,46 +41,46 @@ public class FileChecksumProcessor {
     public static void processPath(Path metadataPath, Path actualDataPath, String code, List<String> paths, ProcessorParams processorParams) {
         Path dataPath = actualDataPath.resolve(code);
         if (Files.notExists(dataPath)) {
-            System.out.println("Path "+ dataPath+" doesn't exists");;
+            System.out.println("Path "+ dataPath+" doesn't exists");
             return;
         }
-        Path actualMetadataPath = PersistenceUtils.resolveSubPath(metadataPath, dataPath.getFileName().toString());
+        MetadataPath actualMetadataPath = new MetadataPath(PersistenceUtils.resolveSubPath(metadataPath, dataPath.getFileName().toString()));
         processDataPath(actualMetadataPath, dataPath, processorParams, paths);
     }
 
     @SneakyThrows
-    public static Map<String, ChecksumPath> process(Path specificMetadataPath, Path dataPath, List<String> paths) {
+    public static Map<String, ChecksumPath> process(SessionPath sessionPath, Path dataPath, List<String> paths) {
         if (Files.notExists(dataPath)) {
             return Map.of();
         }
 
-        Map<String, ChecksumPath> diff = processDiff(specificMetadataPath, dataPath, paths);
+        Map<String, ChecksumPath> diff = processDiff(sessionPath, dataPath, paths);
         return diff;
     }
 
-    private static void processDataPath(Path path, Path actualDataPath, final ProcessorParams params, List<String> paths) throws IOException {
+    private static void processDataPath(MetadataPath metadataPath, Path actualDataPath, final ProcessorParams params, List<String> paths) throws IOException {
 
-        String prefixPath = path.getFileName().toString();
+        String prefixPath = metadataPath.path.getFileName().toString();
 
-        String session = SessionUtils.getSession(path);
+        String session = SessionUtils.getSession(metadataPath);
         if (session==null) {
             session = UUID.randomUUID().toString();
-            SessionUtils.persistSession(path, session, LocalDate::now);
+            SessionUtils.persistSession(metadataPath, session, LocalDate::now);
         }
-
-        Integer serial = SerialUtils.getSerial(path);
+        SessionPath sessionPath = new SessionPath(metadataPath.path.resolve(session));
+        Integer serial = SerialUtils.getSerial(sessionPath);
         if (serial==null) {
             serial = 1;
-            SerialUtils.persistSerial(path, serial, LocalDate::now);
+            SerialUtils.persistSerial(sessionPath, serial, LocalDate::now);
         }
 
-        String notificationXml = NotificationUtils.getNotification(path);
+        String notificationXml = NotificationUtils.getNotification(sessionPath);
         final RrdpNotificationXml n = notificationXml == null
                 ? new RrdpNotificationXml()
                 : RrdpNotificationXmlUtils.parseNotificationXml(notificationXml);
 
-        Map<String, ChecksumPath> diff = FileChecksumProcessor.process(path, actualDataPath, paths);
-        ChecksumManager.persist(path, diff);
+        Map<String, ChecksumPath> diff = FileChecksumProcessor.process(sessionPath, actualDataPath, paths);
+        ChecksumManager.persist(sessionPath, diff);
 
         if (diff.isEmpty()) {
             System.out.println("No difference since last check");
@@ -119,9 +121,9 @@ public class FileChecksumProcessor {
         Rrdp rrdp = new Rrdp(cfg);
         rrdp.produce();
 
-        SerialUtils.persistSerial(path, serial + 1, LocalDate::now);
+        SerialUtils.persistSerial(sessionPath, serial + 1, LocalDate::now);
 
-        Path entryPath = MetadataUtils.getEntryPath(path);
+        Path entryPath = MetadataUtils.getEntryPath(sessionPath);
         String entryFilename = PersistenceUtils.formatFilename(serial, ".xml");
         Path entryFile = entryPath.resolve(entryFilename);
         final String notificationEntryStr = notificationEntry.toString();
@@ -131,7 +133,7 @@ public class FileChecksumProcessor {
         final String uri = PersistenceUtils.asUri(params.notificationEntryUriPrefix, prefixPath + '/' + entryFilename);
         rrdp.produceNotification(new UriHashLength(uri, DigestUtils.sha256Hex(notificationEntryStr), notificationEntryStr.length()), notification::write);
 
-        NotificationUtils.persistNotification(path, notification.toString(), LocalDate::now);
+        NotificationUtils.persistNotification(sessionPath, notification.toString(), LocalDate::now);
     }
 
     public static RrdpEntryProvider toRrdpEntry(ChecksumPath checksumPath, String prefixPath, final ProcessorParams params) {
@@ -145,8 +147,8 @@ public class FileChecksumProcessor {
     }
 
     @SneakyThrows
-    private static Map<String, ChecksumPath> processDiff(Path specificMetadataPath, Path dataPath, List<String> paths) {
-        final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(specificMetadataPath);
+    private static Map<String, ChecksumPath> processDiff(SessionPath sessionPath, Path dataPath, List<String> paths) {
+        final Map<String, ChecksumPath> calculatedMap = ChecksumManager.load(sessionPath);
         final Map<String, ChecksumPath> newMap = loadChecksumPath(dataPath, calculatedMap, paths);
         return newMap;
     }

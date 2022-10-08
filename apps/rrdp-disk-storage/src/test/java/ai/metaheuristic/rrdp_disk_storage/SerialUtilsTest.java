@@ -1,5 +1,6 @@
 package ai.metaheuristic.rrdp_disk_storage;
 
+import ai.metaheuristic.rrdp.paths.SessionPath;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -18,35 +19,39 @@ public class SerialUtilsTest {
     @Test
     public void test(@TempDir Path tempPath) {
 
-        assertNull(SerialUtils.getSerialFile(tempPath));
-        Integer serial = SerialUtils.getSerial(tempPath);
+        String session = "123";
+
+        SessionPath sessionPath = new SessionPath(tempPath.resolve(session));
+
+        assertNull(SerialUtils.getSerialFile(sessionPath));
+        Integer serial = SerialUtils.getSerial(sessionPath);
         assertNull(serial);
 
-        String serial1 = SerialUtils.persistSerial(tempPath, 1, LocalDate::now);
+        String serial1 = SerialUtils.persistSerial(sessionPath, 1, LocalDate::now);
         assertNotNull(serial1);
         assertDoesNotThrow(()-> Integer.parseInt(serial1));
 
-        Path serialPath1 = SerialUtils.getSerialFile(tempPath);
+        Path serialPath1 = SerialUtils.getSerialFile(sessionPath);
         assertNotNull(serialPath1);
 
 
-        Integer serial11 = SerialUtils.getSerial(tempPath);
+        Integer serial11 = SerialUtils.getSerial(sessionPath);
         assertNotNull(serial11);
         assertEquals(1, serial11);
 
 
-        String serial2 = SerialUtils.persistSerial(tempPath, 2, LocalDate::now);
+        String serial2 = SerialUtils.persistSerial(sessionPath, 2, LocalDate::now);
         assertNotNull(serial2);
         assertEquals(2, Integer.parseInt(serial2));
 
-        Path serialPath2 = SerialUtils.getSerialFile(tempPath);
+        Path serialPath2 = SerialUtils.getSerialFile(sessionPath);
         assertNotNull(serialPath2);
 
-        String serial3 = SerialUtils.persistSerial(tempPath, 3, LocalDate::now);
+        String serial3 = SerialUtils.persistSerial(sessionPath, 3, LocalDate::now);
         assertNotNull(serial3);
         assertEquals(3, Integer.parseInt(serial3));
 
-        Path serialPath3 = SerialUtils.getSerialFile(tempPath);
+        Path serialPath3 = SerialUtils.getSerialFile(sessionPath);
         assertNotNull(serialPath3);
 
         assertNotEquals(serialPath1, serialPath2);

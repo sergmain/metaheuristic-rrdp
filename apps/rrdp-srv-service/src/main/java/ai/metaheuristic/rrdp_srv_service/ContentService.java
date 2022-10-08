@@ -1,7 +1,11 @@
 package ai.metaheuristic.rrdp_srv_service;
 
+import ai.metaheuristic.rrdp.paths.MetadataPath;
+import ai.metaheuristic.rrdp.paths.SessionPath;
 import ai.metaheuristic.rrdp_disk_storage.MetadataUtils;
-import ai.metaheuristic.rrdp_disk_storage.NotificationUtils;
+import ai.metaheuristic.rrdp_disk_storage.PersistenceUtils;
+import ai.metaheuristic.rrdp_disk_storage.SessionUtils;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +15,9 @@ import org.springframework.web.util.UriUtils;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -57,17 +62,36 @@ public class ContentService {
     @SneakyThrows
     @Nullable
     public String getEntryContent(String dataCode, String entryFilename) {
-        Path metadataPath = globals.path.metadata.path.resolve(dataCode);
-        if (Files.notExists(metadataPath)) {
+        MetadataPath metadataPath = new MetadataPath(globals.path.metadata.path.resolve(dataCode));
+        if (Files.notExists(metadataPath.path)) {
             return null;
         }
-        Path entryPath = MetadataUtils.getEntryPath(metadataPath);
+        SessionPath sessionPath = getSessionPath(metadataPath);
+
+        Path entryPath = MetadataUtils.getEntryPath(sessionPath);
         Path entryFile = entryPath.resolve(entryFilename);
         if (Files.notExists(entryFile)) {
             return null;
         }
         final String entryStr = Files.readString(entryFile);
         return entryStr;
+    }
+
+    @SneakyThrows
+    @NonNull
+    private static SessionPath getSessionPath(MetadataPath metadataPath) {
+        String session = SessionUtils.getSession(metadataPath);
+        if (session==null) {
+            session = SessionUtils.persistSession(metadataPath, UUID.randomUUID().toString(), LocalDate::now);
+        }
+        if (session==null) {
+            throw new IllegalStateException("(session==null)");
+        }
+        SessionPath sessionPath = new SessionPath(metadataPath.path.resolve(session));
+        if (Files.notExists(sessionPath.path)) {
+            Files.createDirectory(sessionPath.path);
+        }
+        return sessionPath;
     }
 
     @Nullable
@@ -106,25 +130,19 @@ public class ContentService {
         if (Files.notExists(globals.path.metadata.path)) {
             throw new RuntimeException("Path "+ globals.path.metadata.path +" doesn't exist");
         }
-        Files.walkFileTree(globals.path.metadata.path, EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult visitFile(Path p, BasicFileAttributes attrs) {
-                if (!Files.isDirectory(p)) {
-                    log.warn("Path "+globals.path.metadata.path+" must contain only dirs, "+p+" is file actually");
-                    return FileVisitResult.CONTINUE;
-                }
-                final String dataCode = p.getFileName().toString();
-                String content = NotificationUtils.getNotification(p);
-                try {
-                    notificationCache.writeLock.lock();
-                    notificationCache.notificationContents.put(dataCode, content);
-                } finally {
-                    notificationCache.writeLock.unlock();
-                }
+        for (String code : getDataCodes()) {
+            MetadataPath metadataPath = new MetadataPath(globals.path.metadata.path.resolve(code));
 
-                return FileVisitResult.CONTINUE;
+            SessionPath sessionPath = getSessionPath(metadataPath);
+
+            String content = PersistenceUtils.getLatestContent(MetadataUtils.getNotificationPath(sessionPath), (o)->true);;
+            try {
+                notificationCache.writeLock.lock();
+                notificationCache.notificationContents.put(code, content);
+            } finally {
+                notificationCache.writeLock.unlock();
             }
-        });
+        }
     }
 
     @SneakyThrows
