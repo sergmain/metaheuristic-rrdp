@@ -5,7 +5,6 @@ import ai.metaheuristic.rrdp.paths.SessionPath;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -16,7 +15,8 @@ import java.util.Map;
  */
 public class ChecksumManagerTest {
 
-    @Disabled
+    // disabled because it's not an actual test
+    @Disabled("disabled because it's not an actual test")
     @Test
     public void test() {
         final Path rootPath = PersistenceUtils.resolveSubPath(Path.of("result"), "metadata");

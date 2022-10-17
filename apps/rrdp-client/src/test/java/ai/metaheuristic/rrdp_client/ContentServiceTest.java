@@ -21,10 +21,10 @@ public class ContentServiceTest {
 
     @Test
     public void test_55() throws IOException {
-        String snapshot = IOUtils.resourceToString("/entry/000001.xml", StandardCharsets.UTF_8);
+        String xml = IOUtils.resourceToString("/entry/000001.xml", StandardCharsets.UTF_8);
 
 
-        RrdpEntryXml entryXml = RrdpEntryXmlUtils.parseRrdpEntryXml(snapshot);
+        RrdpEntryXml entryXml = RrdpEntryXmlUtils.parseRrdpEntryXml(IOUtils.toInputStream(xml, StandardCharsets.UTF_8));
 
 
         assertEquals(1, entryXml.entries.size());

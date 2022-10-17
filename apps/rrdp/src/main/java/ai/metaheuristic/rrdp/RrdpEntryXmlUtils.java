@@ -9,12 +9,11 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.*;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.function.Consumer;
 
-import static ai.metaheuristic.rrdp.RrdpCommonUtils.*;
 import static ai.metaheuristic.rrdp.RrdpCommonUtils.isAny;
 
 /**
@@ -26,14 +25,9 @@ public class RrdpEntryXmlUtils {
 
     private final static XMLInputFactory XML_FACTORY = XMLInputFactory.newInstance();
 
-    public static RrdpEntryXml parseRrdpEntryXml(String xml) {
-        StringReader reader = new StringReader(xml);
-        return parseRrdpEntryXml(reader);
-    }
-
     @SneakyThrows
-    public static RrdpEntryXml parseRrdpEntryXml(Reader reader) {
-        XMLEventReader eventReader = XML_FACTORY.createXMLEventReader(reader);
+    public static RrdpEntryXml parseRrdpEntryXml(InputStream inputStream) {
+        XMLEventReader eventReader = XML_FACTORY.createXMLEventReader(inputStream, StandardCharsets.UTF_8.toString());
         RrdpEntryXml notification = parse(eventReader);
         return notification;
     }

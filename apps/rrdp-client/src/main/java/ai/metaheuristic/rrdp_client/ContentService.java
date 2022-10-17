@@ -3,10 +3,7 @@ package ai.metaheuristic.rrdp_client;
 import ai.metaheuristic.rrdp.*;
 import ai.metaheuristic.rrdp.paths.MetadataPath;
 import ai.metaheuristic.rrdp.paths.SessionPath;
-import ai.metaheuristic.rrdp_disk_storage.FileChecksumProcessor;
-import ai.metaheuristic.rrdp_disk_storage.PersistenceUtils;
-import ai.metaheuristic.rrdp_disk_storage.SerialUtils;
-import ai.metaheuristic.rrdp_disk_storage.SessionUtils;
+import ai.metaheuristic.rrdp_disk_storage.*;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +12,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.io.filefilter.FileFileFilter;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.client.fluent.Response;
@@ -25,10 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriUtils;
 
 import javax.annotation.Nullable;
-import java.io.ByteArrayOutputStream;
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -39,11 +33,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static ai.metaheuristic.rrdp.RrdpEnums.*;
-import static java.nio.file.StandardOpenOption.*;
+import static ai.metaheuristic.rrdp.RrdpEnums.EntryState;
+import static ai.metaheuristic.rrdp.RrdpEnums.NotificationEntryType;
 
 /**
  * @author Sergio Lissner
@@ -69,6 +62,18 @@ public class ContentService {
         public SessionPath sessionPath;
     }
 
+    public Path tempPath;
+
+    @PostConstruct
+    public void init() throws IOException {
+        final Path p = DirUtils.createMhRrdpTempPath("rrdp-client-");
+        if (p==null) {
+            throw new RuntimeException("Can't create temp dir");
+        }
+        tempPath = p;
+    }
+
+    @SneakyThrows
     public void process(String code) {
         System.out.println("code = " + code);
         boolean exist = checkCode(code);
@@ -187,7 +192,7 @@ public class ContentService {
         return ctx;
     }
 
-    private List<Pair<Integer, RrdpEntryXml>> processSerials(RrdpNotificationXml n, int serial) {
+    private List<Pair<Integer, RrdpEntryXml>> processSerials(RrdpNotificationXml n, int serial) throws IOException {
         List<RrdpNotificationXml.Entry> sorted = RrdpCommonUtils.sortNotificationXmlEntries(n);
         List<Pair<Integer, RrdpEntryXml>> entryPairs = new ArrayList<>();
         for (RrdpNotificationXml.Entry entry : sorted) {
@@ -248,21 +253,22 @@ public class ContentService {
         }
     }
 
-    public RrdpEntryXml requestRrdpEntryXml(String sessionId, int serial, RrdpNotificationXml.Entry entry) {
-        String content = requestEntry(entry.uri);
-        if (content==null) {
-            throw new IllegalStateException("Notification is broken, entry wasn't found on server, entry: " + entry.uri);
+    public RrdpEntryXml requestRrdpEntryXml(String sessionId, int serial, RrdpNotificationXml.Entry entry) throws IOException {
+        Path content = requestEntry(entry.uri);
+        try (InputStream is = Files.newInputStream(content)) {
+            verifyChecksum(entry, is);
         }
-        verifyChecksum(entry, content);
-        RrdpEntryXml entryXml = RrdpEntryXmlUtils.parseRrdpEntryXml(content);
-        if (!sessionId.equals(entryXml.sessionId)) {
-            throw new IllegalStateException("(!sessionId.equals(entryXml.sessionId))");
+        try (InputStream is = Files.newInputStream(content)) {
+            RrdpEntryXml entryXml = RrdpEntryXmlUtils.parseRrdpEntryXml(is);
+            if (!sessionId.equals(entryXml.sessionId)) {
+                throw new IllegalStateException("(!sessionId.equals(entryXml.sessionId))");
+            }
+            System.out.println("Entry: " + entry.uri + "\nnumber of RrdpEntryXml.Entry: " + entryXml.entries.size());
+            if (serial != entryXml.serial) {
+                throw new IllegalStateException("(entry.serial!=entryXml.serial)");
+            }
+            return entryXml;
         }
-        System.out.println("Entry: " + entry.uri+"\nnumber of RrdpEntryXml.Entry: "+entryXml.entries.size());
-        if (serial!=entryXml.serial) {
-            throw new IllegalStateException("(entry.serial!=entryXml.serial)");
-        }
-        return entryXml;
     }
 
     @SneakyThrows
@@ -301,18 +307,9 @@ public class ContentService {
         }
     }
 
-    private void downloadAndPersistEntry(Path path, RrdpEntryXml.Entry en) {
-        getData(
-                en.uri,
-                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
-                is -> {
-                    try (OutputStream os = Files.newOutputStream(path, CREATE, TRUNCATE_EXISTING, WRITE)) {
-                        IOUtils.copy(is, os, 8196);
-                    }
-                    catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                } );
+    private void downloadAndPersistEntry(Path path, RrdpEntryXml.Entry en) throws IOException {
+        RrdpServerResponse rrdpServerResponse = getData(en.uri, (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000));
+        Files.copy(rrdpServerResponse.dataPath, path);
     }
 
     private Path entryXmlUriToPath(RrdpEntryXml.Entry en) {
@@ -325,8 +322,8 @@ public class ContentService {
         return path;
     }
 
-    private static void verifyChecksum(RrdpNotificationXml.Entry entry, String content) {
-        String actualHash = DigestUtils.sha256Hex(content);
+    private static void verifyChecksum(RrdpNotificationXml.Entry entry, InputStream is) throws IOException {
+        String actualHash = DigestUtils.sha256Hex(is);
         if (!entry.hash.equals(actualHash)) {
             throw new RuntimeException("Hashes are different, expected: " + entry.hash+", actual: " + actualHash);
         }
@@ -335,32 +332,27 @@ public class ContentService {
     @Nullable
     @SneakyThrows
     public String requestNotification(String dataCode) {
-        final StringBuilder content = new StringBuilder();
-        getData(
+        RrdpServerResponse rrdpServerResponse = getData(
                 "/rest/v1/rrdp/replication/" + dataCode + "/notification.xml",
-                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
-                is -> content.append(asString(is)) );
+                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000));
 
-        return content.toString();
+        return Files.readString(rrdpServerResponse.dataPath);
     }
 
     // http://localhost:8080/rest/v1/rrdp/replication/entry/edition/000001.xml
-    @Nullable
     @SneakyThrows
-    public String requestEntry(String entryUri) {
-        final StringBuilder content = new StringBuilder();
-        getData(entryUri, (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000), is -> content.append(asString(is)));
-        return content.toString();
+    public Path requestEntry(String entryUri) {
+        RrdpServerResponse rrdpServerResponse = getData(entryUri, (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000));
+        return rrdpServerResponse.dataPath;
     }
 
     @SneakyThrows
     public List<String> requestCodes() {
-        final StringBuilder content = new StringBuilder();
-        getData(
+        RrdpServerResponse rrdpServerResponse = getData(
                 "/rest/v1/rrdp/replication/codes",
-                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000),
-                is -> content.append(asString(is)));
-        final String s = content.toString();
+                (uri) -> Request.Get(uri).connectTimeout(5000).socketTimeout(20000));
+
+        final String s = Files.readString(rrdpServerResponse.dataPath);
         if (s.isBlank()) {
             return List.of();
         }
@@ -374,33 +366,22 @@ public class ContentService {
     }
 
     @SneakyThrows
-    public void getData(String uriPath, Function<URI, Request> requestFunc, Consumer<InputStream> inputStreamConsumer) {
+    public RrdpServerResponse getData(String uriPath, Function<URI, Request> requestFunc) {
         final URI uri = getUri(globals.asset.url, uriPath);
         final Request request = requestFunc.apply(uri);
 
         Response response = Executor.newInstance().execute(request);
 
-        final HttpResponse httpResponse = response.returnResponse();
-        final int statusCode = httpResponse.getStatusLine().getStatusCode();
-        if (statusCode != 200) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final HttpEntity entity = httpResponse.getEntity();
-            if (entity != null) {
-                entity.writeTo(baos);
-            }
+        final RrdpServerResponse rrdpServerResponse = response.handleResponse(new RrdpServerResponseHandler(tempPath));
 
-            final String s = baos.toString();
-            final String es = "Server error: " + statusCode + ", uri: "+uri.toString()+", response:\n" +
+        if (rrdpServerResponse.statusCode != 200) {
+            final String s = Files.readString(rrdpServerResponse.dataPath);
+            final String es = "Server error: " + rrdpServerResponse.statusCode + ", uri: " + uri.toString() + ", response:\n" +
                               (s.isBlank() ? "<response is blank>" : s);
             log.error(es);
             throw new RuntimeException(es);
         }
-        final HttpEntity entity = httpResponse.getEntity();
-        if (entity != null) {
-            try (final InputStream inputStream = entity.getContent()) {
-                inputStreamConsumer.accept(inputStream);
-            }
-        }
+        return rrdpServerResponse;
     }
 
     public static URI getUri(String baseUrl, String uri) throws URISyntaxException {
