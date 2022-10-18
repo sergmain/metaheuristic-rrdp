@@ -48,7 +48,7 @@ public class RrdpClientApplication implements CommandLineRunner {
         String code = cmd.getOptionValue("code");
         if (cmd.hasOption("clean") || cmd.hasOption("verify")) {
             try {
-                contentService.verify(code, cmd.hasOption("verify"));
+                contentService.cleanAndVerify(code, cmd.hasOption("verify"));
             }
             catch (IOException e) {
                 e.printStackTrace();

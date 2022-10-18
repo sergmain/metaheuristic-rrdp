@@ -65,7 +65,7 @@ public class ContentService {
     public Path tempPath;
 
     @PostConstruct
-    public void init() throws IOException {
+    public void init() {
         final Path p = DirUtils.createMhRrdpTempPath("rrdp-client-");
         if (p==null) {
             throw new RuntimeException("Can't create temp dir");
@@ -89,7 +89,7 @@ public class ContentService {
 
         List<Pair<Integer, RrdpEntryXml>> entryPairs = processSerials(ctx.n, ctx.serial);
 
-        reduceEntries(entryPairs);
+        actualizeStateOfEntries(entryPairs);
 
         processNewEntries(ctx.sessionPath, entryPairs);
     }
@@ -103,7 +103,7 @@ public class ContentService {
         return true;
     }
 
-    public void verify(String code, boolean onlyClean) throws IOException {
+    public void cleanAndVerify(String code, boolean verify) throws IOException {
         System.out.println("code = " + code);
 
         ProcessingContext ctx = prepareContext(code);
@@ -111,31 +111,41 @@ public class ContentService {
             deleteForCode(code);
             return;
         }
+        // Integer - serialId
+        List<Pair<Integer, RrdpEntryXml>> entryPairsSerial_0 = processSerials(ctx.n, 0);
 
-        List<Pair<Integer, RrdpEntryXml>> entryPairs = processSerials(ctx.n, 0);
-        Set<String> paths = collectPaths(entryPairs);
+        clean(entryPairsSerial_0);
+        if (verify) {
+            verify(ctx, entryPairsSerial_0);
+        }
+    }
+
+    // clean must not change the state of entryPairsSerial_0
+    private void clean(List<Pair<Integer, RrdpEntryXml>> entryPairsSerial_0) throws IOException {
+        Set<String> paths = collectPaths(entryPairsSerial_0);
         System.out.println("Total paths for processing: " + paths.size());
 
         PathUtils.walk(globals.path.data.path, FileFileFilter.INSTANCE, Integer.MAX_VALUE, false).forEach(p-> {
             if (Files.isDirectory(p)) {
                 return;
             }
-            final String absPath = p.toAbsolutePath().toString();
-            if (!paths.contains(absPath)) {
+            Path relativePath = globals.path.data.path.relativize(p);
+            final String relativePathStr = relativePath.toString();
+            if (!paths.contains(relativePathStr)) {
                 try {
                     Files.delete(p);
                 }
                 catch (IOException e) {
-                    System.out.println("Error while deleting a path: " + absPath+", error: " + e.getMessage());
+                    System.out.println("Error while deleting a path: " + relativePathStr+", error: " + e.getMessage());
                 }
             }
         });
+        paths.clear();
+    }
 
-        if (!onlyClean) {
-            entryPairs = processSerials(ctx.n, 0);
-            reduceEntries(entryPairs);
-            processNewEntries(ctx.sessionPath, entryPairs);
-        }
+    private void verify(ProcessingContext ctx, List<Pair<Integer, RrdpEntryXml>> entryPairsSerial_0) {
+        actualizeStateOfEntries(entryPairsSerial_0);
+        processNewEntries(ctx.sessionPath, entryPairsSerial_0);
     }
 
     private Set<String> collectPaths(List<Pair<Integer, RrdpEntryXml>> entryPairs) {
@@ -143,7 +153,8 @@ public class ContentService {
         for (Pair<Integer, RrdpEntryXml> pair : entryPairs) {
             for (RrdpEntryXml.Entry en : pair.getRight().entries) {
                 Path path = entryXmlUriToPath(en);
-                set.add(path.toAbsolutePath().toString());
+//                set.add(path.toAbsolutePath().toString());
+                set.add(globals.path.data.path.relativize(path).toString());
             }
         }
         return set;
@@ -222,12 +233,12 @@ public class ContentService {
         }
     }
 
-    private static void reduceEntries(List<Pair<Integer, RrdpEntryXml>> entryPairs) {
+    private static void actualizeStateOfEntries(List<Pair<Integer, RrdpEntryXml>> entryPairs) {
         if (entryPairs.size()<2) {
             return;
         }
 
-        // -1 because there is no meaning to verify the last delta
+        // -1 because there is no meaning to actualize the state of entries in the last delta
         for (int i = 0; i < entryPairs.size()-1; i++) {
             Pair<Integer, RrdpEntryXml> pair = entryPairs.get(i);
 
