@@ -127,6 +127,14 @@ public class ContentService {
 
         PathUtils.walk(globals.path.data.path, FileFileFilter.INSTANCE, Integer.MAX_VALUE, false).forEach(p-> {
             if (Files.isDirectory(p)) {
+                try {
+                    if (PathUtils.isEmpty(p)) {
+                        Files.delete(p);
+                    }
+                }
+                catch (IOException e) {
+                    System.out.println("Error while deleting an empty path: " + p +", error: " + e.getMessage());
+                }
                 return;
             }
             Path relativePath = globals.path.data.path.relativize(p);
