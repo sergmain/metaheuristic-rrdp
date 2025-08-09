@@ -11,8 +11,8 @@
         <relativePath/>
     </parent>
 
-    <groupId>ai.metaheuristic</groupId>
-    <artifactId>rrdp-srv-service</artifactId>
+    <groupId>ai.metaheuristic.rrdp</groupId>
+    <artifactId>srv-service</artifactId>
     <version>1.0.3</version>
 
     <packaging>jar</packaging>
@@ -26,9 +26,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>ai.metaheuristic</groupId>
-            <artifactId>rrdp-disk-storage</artifactId>
-            <version>1.0.4</version>
+            <groupId>ai.metaheuristic.rrdp</groupId>
+            <artifactId>disk-storage</artifactId>
+            <version>1.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -86,7 +86,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
                 <configuration>
                     <compilerArgument>-parameters</compilerArgument>
                     <release>11</release>

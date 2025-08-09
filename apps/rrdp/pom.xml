@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ai.metaheuristic</groupId>
-    <artifactId>rrdp</artifactId>
-    <version>1.0.4</version>
+    <groupId>ai.metaheuristic.rrdp</groupId>
+    <artifactId>core</artifactId>
+    <version>1.1.0</version>
 
     <packaging>jar</packaging>
 
-    <name>rrdp</name>
-    <description>RRDP commons classes</description>
+    <name>rrdp-core</name>
+    <description>RRDP core classes</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -56,7 +56,7 @@
     </dependencies>
 
     <build>
-        <finalName>metaheuristic-rrdp-${project.version}</finalName>
+        <finalName>metaheuristic-rrdp-core-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -96,7 +96,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>ai.metaheuristic.rrdp_srv.RrdpSrvApplication</mainClass>
+                    <mainClass>ai.metaheuristic.rrdp.srv.RrdpSrvApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>
