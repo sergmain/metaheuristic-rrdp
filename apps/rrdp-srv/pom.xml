@@ -24,8 +24,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>ai.metaheuristic</groupId>
-            <artifactId>rrdp-srv-service</artifactId>
+            <groupId>ai.metaheuristic.rrdp</groupId>
+            <artifactId>srv-service</artifactId>
             <version>1.0.3</version>
         </dependency>
         <dependency>
